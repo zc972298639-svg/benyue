@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>本悦瑜伽管理助手</title>
     <style>
-        :root { --primary: #f3a683; --bg: #f8fafc; --text: #334155; --sub-text: #64748b; }
+        :root { --primary: #f3a683; --bg: #f8fafc; --text: #334155; --sub-text: #64748b; --danger: #ef4444; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 顶部导航与周历 */
+        /* 布局控制 */
         .fixed-top { background: #fff; border-bottom: 1px solid #f1f5f9; flex-shrink: 0; padding-bottom: 10px; }
         .top-bar { height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
         .year-month { font-size: 18px; font-weight: bold; }
@@ -19,74 +19,45 @@
         .week-day.active { background: #ffeadb; color: #e67e22; border-radius: 8px; font-weight: bold; }
         .nav-btn { width: 30px; text-align: center; font-size: 24px; color: var(--primary); cursor: pointer; }
 
-        /* 内容区 */
-        .content-body { flex: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .content-body { flex: 1; overflow-y: auto; padding-bottom: 80px; }
         .hidden { display: none; }
 
-        /* 预约看板 */
+        /* 卡片样式 */
         .kanban-box { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin: 10px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-        .box-time { font-size: 20px; font-weight: bold; color: var(--primary); }
-        .box-name { font-size: 16px; margin-top: 4px; }
-        .box-right-square { display: flex; gap: 8px; }
-        .sq-btn { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; border:none; }
-        .btn-check { background: #a7ebd9; color: #065f46; }
-        .btn-cancel { background: #fecaca; color: #991b1b; }
-        .box-label { color: #94a3b8; font-size: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 6px; }
+        .m-card { background: #fff; margin: 10px; padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: pointer; border-left: 5px solid #ddd; }
+        .bg-orange { border-left-color: #ff9f43; }
+        .bg-purple { border-left-color: #a29bfe; }
+        
+        /* 详情与历史 */
+        .m-details-box { margin: -5px 10px 10px; background:#f1f5f9; padding:12px; border-radius: 0 0 12px 12px; font-size: 13px; }
+        .history-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 5px; color: #fff; }
+        .tag-blue { background: #3b82f6; } /* 续费记录 */
+        .tag-green { background: #10b981; } /* 上课记录 */
+        .record-item { background:#fff; margin-bottom: 6px; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
 
-        /* 会员列表 */
-        .m-card { background: #fff; margin: 10px; padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: pointer; }
-        .bg-orange { border-left: 5px solid #ff9f43; }
-        .bg-purple { border-left: 5px solid #a29bfe; }
-        .type-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #fff; }
-        .tag-orange { background: #ff9f43; }
-        .tag-purple { background: #a29bfe; }
-        .m-sub { font-size: 13px; color: var(--sub-text); margin-top: 4px; }
-        .highlight { color: #e67e22; font-weight: bold; }
-
-        /* 预约表单 */
-        .booking-page { background: #fff; min-height: 100%; padding: 15px; }
-        .f-label { font-size: 12px; color: #94a3b8; margin: 10px 0 5px 5px; }
-        .f-input, select { width: 100%; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 12px; font-size: 14px; outline: none; }
-        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .time-block { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 8px; font-size: 12px; cursor: pointer; }
-        .time-block.selected { background: #ffeadb; color: #e67e22; border: 1px solid #fab1a0; }
-        .time-block.disabled { opacity: 0.2; text-decoration: line-through; }
-
-        /* 统计中心 */
-        .report-filter-bar { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border-bottom: 1px solid #f1f5f9; }
-        .filter-type { background: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; }
-        .filter-type span { font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-        .filter-type span.active { background: #fff; color: var(--primary); font-weight: bold; }
-        .stat-section { padding: 15px; }
-        .stat-banner { background: var(--primary); color: #fff; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 14px; }
-        .report-card-main { background: #fff; padding: 20px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .report-total { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
-        .report-total .num { font-size: 35px; font-weight: bold; }
-        .report-details { display: flex; gap: 10px; }
-        .det-item { flex: 1; text-align: center; padding: 10px; border-radius: 8px; }
+        /* 表单 */
+        .f-input, select { width: 100%; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 12px; outline: none; }
+        .btn-submit-big { background: var(--primary); color: #fff; border-radius: 25px; width: 100%; font-weight: bold; padding: 12px 0; border: none; margin-top: 10px; }
+        .btn-mini { flex: 1; font-size: 12px; padding: 8px; border-radius: 15px; border: 1px solid #ddd; background: #fff; }
 
         /* 底部导航 */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #fff; display: flex; border-top: 1px solid #f1f5f9; }
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
         .tab-item.on { color: var(--primary); font-weight: bold; }
-
-        .m-details-box { margin: -5px 10px 10px; background:#f8fafc; padding:10px; border-radius:12px; border: 1px solid #eee; }
-        .record-card { background:#fff; margin-bottom: 6px; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border: 1px solid #f1f5f9; }
-        .btn-submit-big { background: var(--primary); color: #fff; border-radius: 25px; width: 100%; font-weight: bold; padding: 12px 0; border: none; margin-top: 10px; }
-        .btn-mini { flex: 1; font-size: 12px; padding: 8px; border-radius: 15px; border: 1px solid #ddd; background: #fff; }
-
-        /* 隐藏的续卡日期输入框 */
-        #hidden-date-picker { position: fixed; top: -100px; }
+        
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .time-block { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 8px; font-size: 12px; }
+        .time-block.selected { background: #ffeadb; color: #e67e22; border: 1px solid #fab1a0; }
     </style>
 </head>
 <body>
 
-    <input type="date" id="hidden-date-picker" onchange="processRenewDate(this.value)">
+    <input type="date" id="hidden-date-picker" style="position:fixed; top:-100px" onchange="processRenewDate(this.value)">
 
     <div id="header-nav" class="fixed-top">
         <div class="top-bar">
-            <div class="year-month" id="display-date">2024年12月</div>
-            <div class="user-filter">本悦瑜伽管理</div>
+            <div class="year-month" id="display-date">2024年</div>
+            <div style="font-size: 14px; color: var(--primary);">本悦瑜伽管理</div>
         </div>
         <div class="date-nav-bar">
             <div class="nav-btn" onclick="changeWeek(-1)">‹</div>
@@ -98,62 +69,41 @@
     <div class="content-body" id="main-content">
         <div id="page-kanban"><div id="agenda-list"></div></div>
         <div id="page-booking" class="hidden">
-            <div class="booking-page">
-                <div class="f-label">选择会员</div>
+            <div style="padding: 15px; background: #fff;">
+                <div style="font-size:12px; color:#94a3b8; margin-bottom:5px">选择会员</div>
                 <select id="book-member-select"></select>
-                <div class="f-label">预约日期</div>
+                <div style="font-size:12px; color:#94a3b8; margin-bottom:5px">预约日期</div>
                 <input type="date" id="book-date-input" class="f-input" onchange="handleBookingDateChange(this.value)">
-                <div class="f-label">选择时间</div>
+                <div style="font-size:12px; color:#94a3b8; margin-bottom:10px">选择时间</div>
                 <div class="time-grid" id="time-grid"></div>
-                <button class="btn-submit-big" onclick="submitBooking()">确认预约并提交</button>
+                <button class="btn-submit-big" onclick="submitBooking()">提交预约</button>
             </div>
         </div>
         <div id="page-list" class="hidden"><div id="member-list-container"></div></div>
         <div id="page-reg" class="hidden">
-            <div class="stat-section">
-                <div class="stat-banner" id="reg-title">新会员办卡</div>
-                <div class="report-card-main">
-                    <input type="text" id="reg-name" class="f-input" placeholder="学员姓名">
-                    <input type="number" id="reg-phone" class="f-input" placeholder="手机号码">
-                    <input type="text" id="reg-wechat" class="f-input" placeholder="微信昵称">
-                    <select id="reg-type" onchange="toggleRegFields(this.value)">
-                        <option value="0">次卡</option>
-                        <option value="1">月卡</option>
-                    </select>
-                    <div id="field-count"><input type="number" id="reg-total" class="f-input" placeholder="总次数" value="20"></div>
-                    <div id="field-date" class="hidden">
-                        <div class="f-label">开始日期</div>
-                        <input type="date" id="reg-start-date" class="f-input">
-                    </div>
-                    <button class="btn-submit-big" onclick="saveMember()">保存信息</button>
-                </div>
+            <div style="padding: 15px;">
+                <div id="reg-title" style="font-weight:bold; margin-bottom:15px">新会员办卡</div>
+                <input type="text" id="reg-name" class="f-input" placeholder="姓名">
+                <input type="number" id="reg-phone" class="f-input" placeholder="手机">
+                <select id="reg-type" onchange="toggleRegFields(this.value)">
+                    <option value="0">次卡</option>
+                    <option value="1">月卡</option>
+                </select>
+                <div id="field-count"><input type="number" id="reg-total" class="f-input" placeholder="总次数"></div>
+                <div id="field-date" class="hidden"><input type="date" id="reg-start-date" class="f-input"></div>
+                <button class="btn-submit-big" onclick="saveMember()">确认保存</button>
             </div>
         </div>
         <div id="page-center" class="hidden">
-            <div class="report-filter-bar">
-                <div class="filter-type">
-                    <span id="mode-month" class="active" onclick="switchReportMode('month')">按月</span>
-                    <span id="mode-year" onclick="switchReportMode('year')">按年</span>
+            <div style="padding: 15px;">
+                <div style="display:flex; gap:10px; margin-bottom:15px">
+                    <button id="mode-month" onclick="switchReportMode('month')" style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">按月</button>
+                    <button id="mode-year" onclick="switchReportMode('year')" style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">按年</button>
                 </div>
-                <input id="report-date-input" class="f-input" style="width:120px; margin-bottom:0; padding:5px;" onchange="renderStats()">
-            </div>
-            <div class="stat-section">
-                <div class="stat-banner">课程消耗报表</div>
-                <div class="report-card-main">
-                    <div class="report-total">
-                        <div class="num" id="stat-total-lessons">0</div>
-                        <div class="txt">总上课节数</div>
-                    </div>
-                    <div class="report-details">
-                        <div class="det-item" style="background:#fff7ed">
-                            <div class="det-n" id="stat-ci-lessons" style="color:#c2410c; font-weight:bold">0</div>
-                            <div class="det-t">次卡</div>
-                        </div>
-                        <div class="det-item" style="background:#faf5ff">
-                            <div class="det-n" id="stat-yue-lessons" style="color:#7e22ce; font-weight:bold">0</div>
-                            <div class="det-t">月卡</div>
-                        </div>
-                    </div>
+                <input id="report-date-input" class="f-input" onchange="renderStats()">
+                <div style="background:#fff; padding:20px; border-radius:12px; text-align:center">
+                    <div style="font-size:12px; color:#94a3b8">总消耗节数</div>
+                    <div id="stat-total-lessons" style="font-size:32px; font-weight:bold; color:var(--primary)">0</div>
                 </div>
             </div>
         </div>
@@ -168,12 +118,14 @@
     </div>
 
     <script>
+        const AUTH_PWD = "5260";
         let state = {
             activeTab: 'kanban',
             currentDate: formatDate(new Date()),
             baseDate: new Date(),
             members: JSON.parse(localStorage.getItem('members')) || [],
             apps: JSON.parse(localStorage.getItem('apps')) || [],
+            logs: JSON.parse(localStorage.getItem('logs')) || [], // 续费记录日志
             bookingDate: formatDate(new Date()),
             selectedTimeIdx: -1,
             reportMode: 'month',
@@ -191,84 +143,94 @@
         function init() {
             renderWeek();
             switchTab('kanban');
-            const rInput = document.getElementById('report-date-input');
-            rInput.type = 'month';
-            rInput.value = state.currentDate.substring(0, 7);
+            document.getElementById('report-date-input').type = 'month';
+            document.getElementById('report-date-input').value = state.currentDate.substring(0, 7);
+        }
+
+        // 安全校验
+        function checkAccess() {
+            const pwd = prompt("此操作受保护，请输入管理密码：");
+            if (pwd === AUTH_PWD) return true;
+            alert("密码错误，操作取消");
+            return false;
         }
 
         function switchTab(tabId) {
             state.activeTab = tabId;
             document.querySelectorAll('.tab-item').forEach((el, i) => {
-                const tabs = ['kanban', 'booking', 'list', 'reg', 'center'];
-                el.classList.toggle('on', tabs[i] === tabId);
+                el.classList.toggle('on', ['kanban','booking','list','reg','center'][i] === tabId);
             });
             document.querySelectorAll('#main-content > div').forEach(div => div.classList.add('hidden'));
             document.getElementById(`page-${tabId}`).classList.remove('hidden');
             document.getElementById('header-nav').classList.toggle('hidden', tabId !== 'kanban');
-            if(tabId === 'kanban') renderKanban();
             if(tabId === 'list') renderMemberList();
             if(tabId === 'booking') renderBookingPage();
             if(tabId === 'center') renderStats();
+            if(tabId === 'kanban') renderKanban();
         }
 
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
-            container.innerHTML = `<div style="padding:15px; font-size:14px; color:#94a3b8">馆内会员：${state.members.length} 位</div>`;
+            container.innerHTML = `<div style="padding:15px; font-size:12px; color:#94a3b8">总计 ${state.members.length} 位会员</div>`;
             container.innerHTML += state.members.map(m => {
-                // 这里是核心：获取该会员的所有上课历史记录
-                const history = state.apps.filter(a => a.mid == m.id).sort((a,b) => b.date.localeCompare(a.date));
-                const historyHtml = history.length > 0 ? history.map(h => `
-                    <div class="record-card">
-                        <span>${h.date} ${h.time}</span>
-                        <span style="color:${h.status=='done'?'#10b981':'#f59e0b'}">${h.status=='done'?'已签到':'待签到'}</span>
-                        <span style="color:red; font-size:10px" onclick="deleteHistory(event, ${h.id}, ${m.id})">删除</span>
+                // 综合上课记录和续费记录
+                const myApps = state.apps.filter(a => a.mid == m.id).map(a => ({...a, gType: 'app'}));
+                const myLogs = state.logs.filter(l => l.mid == m.id).map(l => ({...l, gType: 'log'}));
+                const allRecords = [...myApps, ...myLogs].sort((a,b) => (b.date || b.opTime).localeCompare(a.date || a.opTime));
+
+                const recordHtml = allRecords.map(r => `
+                    <div class="record-item">
+                        <div>
+                            <span class="history-tag ${r.gType=='app'?'tag-green':'tag-blue'}">${r.gType=='app'?'上课':'续费'}</span>
+                            <span style="font-size:12px">${r.gType=='app' ? (r.date + ' ' + r.time) : (r.opTime + ' ' + r.desc)}</span>
+                        </div>
+                        <span style="color:red; font-size:11px" onclick="deleteSingleRecord(event, '${r.gType}', ${r.id}, ${m.id})">删除</span>
                     </div>
-                `).join('') : '<div style="text-align:center; font-size:12px; color:#ccc; padding:10px;">暂无上课记录</div>';
+                `).join('');
 
                 return `
-                <div class="m-card ${m.type === '次卡' ? 'bg-orange' : 'bg-purple'}" onclick="toggleHistory(${m.id})">
+                <div class="m-card ${m.type === '次卡' ? 'bg-orange' : 'bg-purple'}" onclick="toggleDetails(${m.id})">
                     <div>
-                        <div style="font-weight:bold"><span class="type-tag ${m.type === '次卡' ? 'tag-orange' : 'tag-purple'}">${m.type}</span>${m.name}</div>
-                        <div class="m-sub">手机：${m.phone}</div>
-                        <div class="m-sub">${m.type === '次卡' ? `剩余：<span class="highlight">${m.total - m.used}</span> 次` : `至：${m.expDate}`}</div>
+                        <div style="font-weight:bold">${m.name} <small style="color:#999;font-weight:normal">${m.type}</small></div>
+                        <div style="font-size:12px; color:#666; margin-top:4px">${m.type==='次卡'?'剩余：'+(m.total-m.used)+'次':'有效期至：'+m.expDate}</div>
                     </div>
                     <div id="arrow-${m.id}">▼</div>
                 </div>
                 <div id="details-${m.id}" class="m-details-box hidden">
-                    <div style="display:flex; gap:8px; margin-bottom:10px">
-                        <button class="btn-mini" style="background:#f3a683; color:#fff; border:none" onclick="renewCard(${m.id}, '${m.type}')">续卡</button>
-                        <button class="btn-mini" onclick="editMember(${m.id})">修改</button>
-                        <button class="btn-mini" style="color:red" onclick="deleteMember(${m.id})">删除</button>
+                    <div style="display:flex; gap:8px; margin-bottom:12px">
+                        <button class="btn-mini" style="background:var(--primary); color:#fff; border:none" onclick="renewCard(${m.id}, '${m.type}')">续卡</button>
+                        <button class="btn-mini" onclick="deleteMember(${m.id})">删除会员</button>
                     </div>
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:5px;">上课历史：</div>
-                    ${historyHtml}
+                    <div style="font-weight:bold; margin-bottom:8px">往来记录：</div>
+                    ${recordHtml || '<div style="color:#ccc;text-align:center">暂无记录</div>'}
                 </div>`;
             }).join('');
         }
 
-        function toggleHistory(id) {
+        function toggleDetails(id) {
             const el = document.getElementById(`details-${id}`);
-            const arrow = document.getElementById(`arrow-${id}`);
-            const isHidden = el.classList.contains('hidden');
-            // 先隐藏所有，再显示点击的（可选，如果想同时展开多个就不删这行）
-            // document.querySelectorAll('.m-details-box').forEach(box => box.classList.add('hidden')); 
             el.classList.toggle('hidden');
-            arrow.innerText = isHidden ? '▲' : '▼';
         }
 
-        // --- 续卡逻辑修复 ---
+        // --- 核心修复：续卡并记录 ---
         function renewCard(id, type) {
             state.renewingMemberId = id;
             if(type === '次卡') {
-                const add = prompt("请输入要增加的次数：", "20");
+                const add = prompt("请输入充值次数：", "20");
                 if(add && !isNaN(add)) {
                     const m = state.members.find(mem => mem.id == id);
                     m.total = parseInt(m.total) + parseInt(add);
+                    // 记入日志
+                    state.logs.push({
+                        id: Date.now(),
+                        mid: id,
+                        opTime: formatDate(new Date()),
+                        desc: `续次卡 +${add}次`
+                    });
                     saveData(); renderMemberList();
-                    alert("次卡充值成功！");
+                    alert("续次成功");
                 }
             } else {
-                // 触发隐藏的日期选择器
                 document.getElementById('hidden-date-picker').showPicker();
             }
         }
@@ -280,24 +242,70 @@
             let d = new Date(val);
             d.setDate(d.getDate() + 30);
             m.expDate = formatDate(d);
+            // 记入日志
+            state.logs.push({
+                id: Date.now(),
+                mid: m.id,
+                opTime: formatDate(new Date()),
+                desc: `续月卡至 ${m.expDate}`
+            });
             saveData(); renderMemberList();
-            alert("月卡续期成功！有效期已更新。");
+            alert("月卡续费成功");
             state.renewingMemberId = null;
         }
 
-        function deleteHistory(e, hid, mid) {
-            e.stopPropagation();
-            if(!confirm('确定删除此条记录吗？')) return;
-            const app = state.apps.find(a => a.id == hid);
-            if(app.status === 'done') {
-                const m = state.members.find(mem => mem.id == mid);
-                if(m && m.type === '次卡') m.used = Math.max(0, m.used - 1);
+        // --- 核心修复：同一天一人只能预约一次 ---
+        function submitBooking() {
+            const mIdx = document.getElementById('book-member-select').value;
+            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间');
+            
+            const memberId = state.members[mIdx].id;
+            const isBooked = state.apps.some(a => a.mid == memberId && a.date == state.bookingDate);
+            
+            if(isBooked) {
+                alert("提示：该会员在 " + state.bookingDate + " 已经有预约了，同一天不可重复预约。");
+                return;
             }
-            state.apps = state.apps.filter(a => a.id != hid);
+
+            state.apps.push({ 
+                id: Date.now(), 
+                mid: memberId, 
+                date: state.bookingDate, 
+                time: timeRanges[state.selectedTimeIdx].time, 
+                status: 'pending' 
+            });
+            saveData(); switchTab('kanban');
+        }
+
+        // 删除记录（带密码）
+        function deleteSingleRecord(e, gType, rid, mid) {
+            e.stopPropagation();
+            if(!checkAccess()) return;
+            
+            if(gType === 'app') {
+                const app = state.apps.find(a => a.id == rid);
+                if(app.status === 'done') {
+                    const m = state.members.find(mem => mem.id == mid);
+                    if(m && m.type === '次卡') m.used = Math.max(0, m.used - 1);
+                }
+                state.apps = state.apps.filter(a => a.id != rid);
+            } else {
+                state.logs = state.logs.filter(l => l.id != rid);
+            }
             saveData(); renderMemberList();
         }
 
-        // --- 其他基础逻辑 ---
+        function deleteMember(id) {
+            if(!checkAccess()) return;
+            if(confirm('确定要永久删除该会员及所有记录吗？')) {
+                state.members = state.members.filter(m => m.id != id);
+                state.apps = state.apps.filter(a => a.mid != id);
+                state.logs = state.logs.filter(l => l.mid != id);
+                saveData(); renderMemberList();
+            }
+        }
+
+        // 基础辅助函数
         function renderWeek() {
             const listEl = document.getElementById('week-list');
             listEl.innerHTML = '';
@@ -310,67 +318,20 @@
                 let dateStr = formatDate(d);
                 listEl.innerHTML += `<div class="week-day ${dateStr === state.currentDate ? 'active' : ''}" onclick="selectDate('${dateStr}')"><span>${['一','二','三','四','五','六','日'][i]}</span><span>${d.getDate()}</span></div>`;
             }
-            document.getElementById('display-date').innerText = `${state.baseDate.getFullYear()}年${state.baseDate.getMonth()+1}月`;
+            document.getElementById('display-date').innerText = state.baseDate.getFullYear() + "年";
         }
 
         function renderKanban() {
             const listEl = document.getElementById('agenda-list');
             const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
-            if(dayApps.length === 0) { listEl.innerHTML = '<div class="empty-tip">今日暂无预约</div>'; return; }
+            if(dayApps.length === 0) { listEl.innerHTML = '<div style="text-align:center; padding:50px; color:#ccc">今日无课</div>'; return; }
             listEl.innerHTML = dayApps.map(a => {
                 const m = state.members.find(mem => mem.id == a.mid) || {name: '未知'};
-                return `<div class="kanban-box"><div class="box-left"><div class="box-time">${a.time}</div><div class="box-name">${m.name}</div></div>
-                        <div class="box-right-square">${a.status === 'pending' ? `<button class="sq-btn btn-check" onclick="confirmCheckIn(${a.id})">签到</button><button class="sq-btn btn-cancel" onclick="cancelApp(${a.id})">取消</button>` : `<div class="box-label">已结课</div>`}</div></div>`;
+                return `<div class="kanban-box">
+                    <div><div style="font-size:20px; font-weight:bold; color:var(--primary)">${a.time}</div><div>${m.name}</div></div>
+                    <div>${a.status==='pending' ? `<button onclick="confirmCheckIn(${a.id})" style="background:#a7ebd9; border:none; padding:10px 15px; border-radius:8px">签到</button>` : '已结课'}</div>
+                </div>`;
             }).join('');
-        }
-
-        function renderBookingPage() {
-            const select = document.getElementById('book-member-select');
-            select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name}</option>`).join('');
-            handleBookingDateChange(state.bookingDate);
-            document.getElementById('book-date-input').value = state.bookingDate;
-        }
-
-        function handleBookingDateChange(val) {
-            state.bookingDate = val;
-            const grid = document.getElementById('time-grid');
-            const booked = state.apps.filter(a => a.date === val);
-            grid.innerHTML = timeRanges.map((t, i) => {
-                const isB = booked.some(a => { const [h,m] = a.time.split(':').map(Number); return Math.abs(t.totalMin - (h*60+m)) < 60; });
-                return `<div class="time-block ${isB?'disabled':''} ${state.selectedTimeIdx===i?'selected':''}" onclick="${isB?'':`selectTime(${i})`}">${t.time}</div>`;
-            }).join('');
-        }
-
-        function selectTime(i) { state.selectedTimeIdx = i; handleBookingDateChange(state.bookingDate); }
-
-        function submitBooking() {
-            const mIdx = document.getElementById('book-member-select').value;
-            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间');
-            state.apps.push({ id: Date.now(), mid: state.members[mIdx].id, date: state.bookingDate, time: timeRanges[state.selectedTimeIdx].time, status: 'pending' });
-            saveData(); switchTab('kanban');
-        }
-
-        function switchReportMode(mode) {
-            state.reportMode = mode;
-            document.getElementById('mode-month').classList.toggle('active', mode === 'month');
-            document.getElementById('mode-year').classList.toggle('active', mode === 'year');
-            const input = document.getElementById('report-date-input');
-            input.type = (mode === 'month') ? 'month' : 'number';
-            input.value = (mode === 'month') ? state.currentDate.substring(0, 7) : new Date().getFullYear();
-            renderStats();
-        }
-
-        function renderStats() {
-            const filterVal = document.getElementById('report-date-input').value;
-            const filteredApps = state.apps.filter(a => a.status === 'done' && a.date.startsWith(filterVal));
-            let ci = 0, yue = 0;
-            filteredApps.forEach(a => {
-                const m = state.members.find(mem => mem.id == a.mid);
-                if(m && m.type === '次卡') ci++; else yue++;
-            });
-            document.getElementById('stat-total-lessons').innerText = filteredApps.length;
-            document.getElementById('stat-ci-lessons').innerText = ci;
-            document.getElementById('stat-yue-lessons').innerText = yue;
         }
 
         function confirmCheckIn(id) {
@@ -380,13 +341,26 @@
             app.status = 'done'; saveData(); renderKanban();
         }
 
+        function renderBookingPage() {
+            const select = document.getElementById('book-member-select');
+            select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name}</option>`).join('');
+            document.getElementById('book-date-input').value = state.bookingDate;
+            handleBookingDateChange(state.bookingDate);
+        }
+
+        function handleBookingDateChange(val) {
+            state.bookingDate = val;
+            const grid = document.getElementById('time-grid');
+            grid.innerHTML = timeRanges.map((t, i) => `<div class="time-block ${state.selectedTimeIdx===i?'selected':''}" onclick="state.selectedTimeIdx=${i};handleBookingDateChange('${val}')">${t.time}</div>`).join('');
+        }
+
         function saveMember() {
             const name = document.getElementById('reg-name').value;
             const typeIdx = document.getElementById('reg-type').value;
+            if(!name) return alert('请输入姓名');
             const newM = {
                 id: Date.now(), name,
                 phone: document.getElementById('reg-phone').value,
-                wechat: document.getElementById('reg-wechat').value,
                 type: typeIdx == 0 ? '次卡' : '月卡',
                 total: parseInt(document.getElementById('reg-total').value) || 0,
                 used: 0,
@@ -397,13 +371,15 @@
             saveData(); switchTab('list');
         }
 
-        function cancelApp(id) { if(confirm('取消预约？')) { state.apps = state.apps.filter(a => a.id != id); saveData(); renderKanban(); } }
-        function deleteMember(id) { if(confirm('彻底删除会员？')) { state.members = state.members.filter(m => m.id != id); state.apps = state.apps.filter(a => a.mid != id); saveData(); renderMemberList(); } }
-        function toggleRegFields(val) { document.getElementById('field-count').classList.toggle('hidden', val == 1); document.getElementById('field-date').classList.toggle('hidden', val == 0); }
+        function toggleRegFields(v) { document.getElementById('field-count').classList.toggle('hidden', v==1); document.getElementById('field-date').classList.toggle('hidden', v==0); }
         function formatDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-        function selectDate(date) { state.currentDate = date; renderWeek(); renderKanban(); }
-        function changeWeek(dir) { state.baseDate.setDate(state.baseDate.getDate() + (dir * 7)); renderWeek(); }
-        function saveData() { localStorage.setItem('members', JSON.stringify(state.members)); localStorage.setItem('apps', JSON.stringify(state.apps)); }
+        function selectDate(d) { state.currentDate = d; renderWeek(); renderKanban(); }
+        function changeWeek(dir) { state.baseDate.setDate(state.baseDate.getDate() + (dir*7)); renderWeek(); }
+        function saveData() { 
+            localStorage.setItem('members', JSON.stringify(state.members)); 
+            localStorage.setItem('apps', JSON.stringify(state.apps)); 
+            localStorage.setItem('logs', JSON.stringify(state.logs)); 
+        }
 
         init();
     </script>
