@@ -41,7 +41,7 @@
         .report-grid { display: flex; gap: 10px; }
         .stat-item { flex: 1; text-align: center; padding: 12px; border-radius: 10px; }
 
-        .f-input, select { width: 100%; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 12px; outline: none; font-size: 14px; }
+        .f-input, select { width: 100%; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 12px; outline: none; }
         .btn-main { background: var(--primary); color: #fff; border-radius: 25px; width: 100%; font-weight: bold; padding: 14px 0; border: none; }
         .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
         .btn-sub { flex: 1; font-size: 12px; padding: 10px; border-radius: 20px; border: 1px solid #eee; background: #fff; }
@@ -54,7 +54,8 @@
         .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .time-block { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
         .time-block.on { background: #ffeadb; color: #e67e22; border-color: #fab1a0; font-weight: bold; }
-        .time-block.disabled { opacity: 0.3; background: #e2e8f0; color: #94a3b8; cursor: not-allowed; text-decoration: line-through; }
+        .time-block.booked { background: #fee2e2; color: #ef4444; border-color: #fca5a5; opacity: 0.6; cursor: not-allowed; text-decoration: line-through; }
+        .time-block.user-limit { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; opacity: 0.5; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #fff; display: flex; border-top: 1px solid #f1f5f9; padding-bottom: 15px; }
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
@@ -88,9 +89,10 @@
                     <select id="book-member-select" onchange="handleBookingDateChange(state.bookingDate)"></select>
                     <div style="font-size:12px; color:#94a3b8; margin-bottom:5px">第二步：预约日期</div>
                     <input type="date" id="book-date-input" class="f-input" onchange="handleBookingDateChange(this.value)">
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:10px">第三步：上课时间 (最晚20:00)</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-bottom:10px">第三步：上课时间 (9:00 - 20:00)</div>
                     <div class="time-grid" id="time-grid"></div>
-                    <button class="btn-main" style="margin-top:20px" onclick="submitBooking()">提交预约</button>
+                    <div id="book-hint" style="font-size:11px; color:#ef4444; margin-top:10px; height:15px;"></div>
+                    <button class="btn-main" style="margin-top:15px" onclick="submitBooking()">提交预约</button>
                 </div>
             </div>
         </div>
@@ -99,7 +101,7 @@
 
         <div id="page-reg" class="hidden">
             <div class="card">
-                <div class="card-header" id="reg-title">新会员办卡</div>
+                <div class="card-header" id="reg-title">会员资料录入</div>
                 <div class="card-body">
                     <input type="text" id="reg-name" class="f-input" placeholder="真实姓名">
                     <input type="text" id="reg-wxname" class="f-input" placeholder="微信名称/昵称">
@@ -110,7 +112,7 @@
                     </select>
                     <div id="field-count"><input type="number" id="reg-total" class="f-input" placeholder="总次数" value="20"></div>
                     <div id="field-date" class="hidden"><input type="date" id="reg-start-date" class="f-input"></div>
-                    <button class="btn-main" onclick="saveMember()">确认并保存</button>
+                    <button class="btn-main" onclick="saveMember()">保存会员信息</button>
                 </div>
             </div>
         </div>
@@ -165,10 +167,10 @@
             bookingDate: formatDate(new Date()),
             selectedTimeIdx: -1,
             editingMemberId: null,
-            reportMode: 'month',
-            renewingMemberId: null
+            reportMode: 'month'
         };
 
+        // 定义时间线：9点到20点，每15分钟一个刻度
         const timeRanges = [];
         for (let h = 9; h <= 20; h++) {
             for (let m = 0; m < 60; m += 15) {
@@ -200,41 +202,68 @@
             if(tabId === 'kanban') renderKanban();
         }
 
-        // --- 核心：带微信名称的选择逻辑 ---
         function renderBookingPage() {
             const select = document.getElementById('book-member-select');
-            // 此处增加了 (微信名称) 的拼接展示
-            select.innerHTML = state.members.map((m, i) => {
-                const showName = m.wxname ? `${m.name} (${m.wxname})` : m.name;
-                return `<option value="${i}">${showName}</option>`;
-            }).join('');
+            select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name} (${m.wxname || '未备注'})</option>`).join('');
             document.getElementById('book-date-input').value = state.bookingDate;
             handleBookingDateChange(state.bookingDate);
         }
 
+        // --- 核心：排课冲突检测逻辑 ---
         function handleBookingDateChange(val) {
             state.bookingDate = val;
             const mIdx = document.getElementById('book-member-select').value;
-            const memberId = state.members[mIdx]?.id;
+            const currentMemberId = state.members[mIdx]?.id;
             const grid = document.getElementById('time-grid');
-            const memberDayApps = state.apps.filter(a => a.mid == memberId && a.date == val);
+            const hint = document.getElementById('book-hint');
+            hint.innerText = "";
+
+            // 1. 获取选定日期所有的预约（老师的资源）
+            const allDayApps = state.apps.filter(a => a.date === val);
+            // 2. 获取该会员当天的预约（单人单课限制）
+            const userDayApps = allDayApps.filter(a => a.mid == currentMemberId);
+
             grid.innerHTML = timeRanges.map((t, i) => {
-                let isDisabled = memberDayApps.length > 0;
-                return `<div class="time-block ${isDisabled ? 'disabled' : ''} ${state.selectedTimeIdx === i ? 'on' : ''}" 
-                        onclick="${isDisabled ? '' : `state.selectedTimeIdx=${i};handleBookingDateChange('${val}')`}">${t.time}</div>`;
+                // 情况A：该会员今天已经有一节课了
+                if (userDayApps.length > 0) {
+                    hint.innerText = "注意：该学员今日已有课程，无法再次预约。";
+                    return `<div class="time-block user-limit">${t.time}</div>`;
+                }
+
+                // 情况B：老师在这个时间段已经带了学生（由于课长1小时，需检测60分钟范围）
+                const isTeacherBusy = allDayApps.some(a => {
+                    const [ah, am] = a.time.split(':').map(Number);
+                    return Math.abs((ah * 60 + am) - t.totalMin) < 60;
+                });
+
+                if (isTeacherBusy) {
+                    return `<div class="time-block booked">${t.time}</div>`;
+                }
+
+                // 情况C：可选
+                return `<div class="time-block ${state.selectedTimeIdx === i ? 'on' : ''}" 
+                        onclick="state.selectedTimeIdx=${i};handleBookingDateChange('${val}')">${t.time}</div>`;
             }).join('');
         }
 
         function submitBooking() {
             const mIdx = document.getElementById('book-member-select').value;
-            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间');
+            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间点');
+            
             const member = state.members[mIdx];
             const targetTime = timeRanges[state.selectedTimeIdx];
-            const hasClassToday = state.apps.some(a => a.mid == member.id && a.date == state.bookingDate);
-            if(hasClassToday) return alert(`预约失败：${member.name} 今天已经约过课了。`);
+
+            // 二次校验
+            const isConflict = state.apps.filter(a => a.date === state.bookingDate).some(a => {
+                const [ah, am] = a.time.split(':').map(Number);
+                return Math.abs((ah * 60 + am) - targetTime.totalMin) < 60;
+            });
+
+            if(isConflict) return alert('该时间段老师已有课程，请重新选择');
+
             state.apps.push({ id: Date.now(), mid: member.id, date: state.bookingDate, time: targetTime.time, status: 'pending' });
             saveData(); switchTab('kanban');
-            state.selectedTimeIdx = -1; 
+            state.selectedTimeIdx = -1;
         }
 
         function renderMemberList() {
@@ -247,52 +276,45 @@
                         <span><b class="${r.tp=='app'?'tag-app':'tag-log'}">${r.tp=='app'?'课':'续'}</b> ${r.tp=='app'?(r.date+' '+r.time):(r.opTime+' '+r.desc)}</span>
                         <span style="color:#ff7675" onclick="deleteHistory(event, '${r.tp}', ${r.id}, ${m.id})">删除</span>
                     </div>`).join('');
+                
+                // 次卡显示：总次数 / 剩余次数
+                const subInfo = m.type == '次卡' ? `总 ${m.total} 次 / 剩 ${m.total - m.used} 次` : `有效期至 ${m.expDate}`;
+
                 return `
                 <div class="item-box m-card ${m.type=='次卡'?'ci':'yue'}" onclick="toggleDetails(${m.id})">
                     <div>
-                        <div style="font-weight:bold">
-                            <span class="type-tag" style="background:${m.type=='次卡'?'#ff9f43':'#a29bfe'}">${m.type}</span>
-                            ${m.name} ${m.wxname ? `<span style="color:#888;font-weight:normal">(${m.wxname})</span>` : ''}
-                        </div>
-                        <div style="font-size:12px; color:#666; margin-top:5px">${m.type=='次卡'?'剩余 '+(m.total-m.used)+' 次':'有效期至 '+m.expDate}</div>
+                        <div style="font-weight:bold"><span class="type-tag" style="background:${m.type=='次卡'?'#ff9f43':'#a29bfe'}">${m.type}</span>${m.name} <span style="font-weight:normal;color:#888">(${m.wxname||''})</span></div>
+                        <div style="font-size:12px; color:#64748b; margin-top:5px">${subInfo}</div>
                     </div>
                     <div id="arrow-${m.id}">▼</div>
                 </div>
                 <div id="details-${m.id}" class="hidden" style="margin:-10px 10px 10px; background:#fff; padding:15px; border-radius:0 0 12px 12px;">
                     <div class="btn-group"><button class="btn-sub" style="background:var(--primary); color:#fff; border:none;" onclick="renewCard(${m.id},'${m.type}')">续卡</button>
                     <button class="btn-sub" onclick="editMember(${m.id})">修改资料</button><button class="btn-sub" style="color:red" onclick="deleteMember(${m.id})">删除会员</button></div>
-                    <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">往来记录：</div>${recordHtml || '<div style="color:#ccc; font-size:12px; text-align:center">暂无记录</div>'}
+                    <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">历史记录：</div>${recordHtml || '<div style="color:#ccc; font-size:12px; text-align:center">暂无记录</div>'}
                 </div>`;
             }).join('');
         }
 
-        // --- 续卡与修改 ---
-        function renewCard(id, type) {
-            state.renewingMemberId = id;
-            if(type === '次卡') {
-                const add = prompt("续费次数：", "20");
-                if(add && !isNaN(add)) {
-                    const m = state.members.find(mem => mem.id == id);
-                    m.total = parseInt(m.total) + parseInt(add);
-                    state.logs.push({ id: Date.now(), mid: id, opTime: formatDate(new Date()), desc: `续费次卡 +${add}次` });
-                    saveData(); renderMemberList();
-                }
-            } else { document.getElementById('hidden-date-picker').showPicker(); }
-        }
-
-        function processRenewDate(val) {
-            if(!val || !state.renewingMemberId) return;
-            const m = state.members.find(mem => mem.id == state.renewingMemberId);
-            m.startDate = val; let d = new Date(val); d.setDate(d.getDate() + 30);
-            m.expDate = formatDate(d);
-            state.logs.push({ id: Date.now(), mid: m.id, opTime: formatDate(new Date()), desc: `续费月卡至 ${m.expDate}` });
-            saveData(); renderMemberList();
+        // --- 会员管理与保存 ---
+        function saveMember() {
+            const name = document.getElementById('reg-name').value;
+            const wxname = document.getElementById('reg-wxname').value;
+            const typeIdx = document.getElementById('reg-type').value;
+            if(!name) return alert('姓名必填');
+            const mData = { name, wxname, phone: document.getElementById('reg-phone').value, type: typeIdx==0?'次卡':'月卡', total: parseInt(document.getElementById('reg-total').value)||0, startDate: document.getElementById('reg-start-date').value };
+            if(mData.type === '月卡') { let d = new Date(mData.startDate || new Date()); d.setDate(d.getDate()+30); mData.expDate = formatDate(d); }
+            if(state.editingMemberId) {
+                const idx = state.members.findIndex(m => m.id == state.editingMemberId);
+                state.members[idx] = { ...state.members[idx], ...mData }; state.editingMemberId = null;
+            } else { state.members.push({ id: Date.now(), used: 0, ...mData }); }
+            saveData(); switchTab('list');
         }
 
         function editMember(id) {
             const m = state.members.find(mem => mem.id == id);
             state.editingMemberId = id; switchTab('reg');
-            document.getElementById('reg-title').innerText = "修改会员资料";
+            document.getElementById('reg-title').innerText = "修改资料";
             document.getElementById('reg-name').value = m.name;
             document.getElementById('reg-wxname').value = m.wxname || "";
             document.getElementById('reg-phone').value = m.phone;
@@ -302,18 +324,51 @@
             toggleRegFields(m.type === '次卡' ? 0 : 1);
         }
 
-        function saveMember() {
-            const name = document.getElementById('reg-name').value;
-            const wxname = document.getElementById('reg-wxname').value;
-            const typeIdx = document.getElementById('reg-type').value;
-            if(!name) return alert('真实姓名必填');
-            const mData = { name, wxname, phone: document.getElementById('reg-phone').value, type: typeIdx==0?'次卡':'月卡', total: parseInt(document.getElementById('reg-total').value)||0, startDate: document.getElementById('reg-start-date').value };
-            if(mData.type === '月卡') { let d = new Date(mData.startDate); d.setDate(d.getDate()+30); mData.expDate = formatDate(d); }
-            if(state.editingMemberId) {
-                const idx = state.members.findIndex(m => m.id == state.editingMemberId);
-                state.members[idx] = { ...state.members[idx], ...mData }; state.editingMemberId = null;
-            } else { state.members.push({ id: Date.now(), used: 0, ...mData }); }
-            saveData(); switchTab('list');
+        function checkIn(id) {
+            const a = state.apps.find(i => i.id == id); const m = state.members.find(i => i.id == a.mid);
+            if(m && m.type === '次卡') { if(m.used >= m.total) return alert('次数不足，请先续费'); m.used++; }
+            a.status = 'done'; saveData(); renderKanban();
+        }
+
+        // --- 基础工具 ---
+        function renderKanban() {
+            const listEl = document.getElementById('agenda-list');
+            const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
+            if(dayApps.length === 0) { listEl.innerHTML = '<div style="text-align:center; padding:100px 0; color:#ccc">今日无课，休息一下吧</div>'; return; }
+            listEl.innerHTML = dayApps.map(a => {
+                const m = state.members.find(mem => mem.id == a.mid) || {name: '未知'};
+                return `<div class="item-box"><div><div class="time-text">${a.time}</div><div style="font-size:15px">${m.name} (${m.wxname||''})</div></div>
+                    <div>${a.status==='pending' ? `<button onclick="checkIn(${a.id})" style="background:#a7ebd9; border:none; padding:10px 20px; border-radius:10px; color:#065f46; font-weight:bold">签到</button>` : '<span style="color:#94a3b8; font-size:13px">已完成</span>'}</div></div>`;
+            }).join('');
+        }
+
+        function renderStats() {
+            const val = document.getElementById('report-date-input').value;
+            const filtered = state.apps.filter(a => a.status === 'done' && a.date.startsWith(val));
+            let ci = 0, yue = 0;
+            filtered.forEach(a => { const m = state.members.find(mem => mem.id == a.mid); if(m && m.type === '次卡') ci++; else yue++; });
+            document.getElementById('stat-total-lessons').innerText = filtered.length;
+            document.getElementById('stat-ci-lessons').innerText = ci;
+            document.getElementById('stat-yue-lessons').innerText = yue;
+        }
+
+        function renewCard(id, type) {
+            if(type === '次卡') {
+                const add = prompt("增加次数：", "20");
+                if(add && !isNaN(add)) {
+                    const m = state.members.find(mem => mem.id == id);
+                    m.total = parseInt(m.total) + parseInt(add);
+                    state.logs.push({ id: Date.now(), mid: id, opTime: formatDate(new Date()), desc: `续费次卡 +${add}次` });
+                    saveData(); renderMemberList();
+                }
+            } else { state.renewingMemberId = id; document.getElementById('hidden-date-picker').showPicker(); }
+        }
+
+        function processRenewDate(val) {
+            const m = state.members.find(mem => mem.id == state.renewingMemberId);
+            m.startDate = val; let d = new Date(val); d.setDate(d.getDate() + 30); m.expDate = formatDate(d);
+            state.logs.push({ id: Date.now(), mid: m.id, opTime: formatDate(new Date()), desc: `续费月卡至 ${m.expDate}` });
+            saveData(); renderMemberList();
         }
 
         function deleteHistory(e, tp, rid, mid) {
@@ -327,48 +382,11 @@
         }
 
         function deleteMember(id) {
-            if(prompt("确认删除？请输入密码：") !== AUTH_PWD) return alert("密码错误");
+            if(prompt("确认删除该会员及其所有记录？请输入密码：") !== AUTH_PWD) return alert("密码错误");
             state.members = state.members.filter(m => m.id != id);
             state.apps = state.apps.filter(a => a.mid != id);
             state.logs = state.logs.filter(l => l.mid != id);
             saveData(); renderMemberList();
-        }
-
-        function switchReportMode(m) {
-            state.reportMode = m; 
-            const input = document.getElementById('report-date-input');
-            input.type = (m === 'month') ? 'month' : 'number';
-            input.value = (m === 'month') ? state.currentDate.substring(0, 7) : new Date().getFullYear();
-            renderStats();
-            document.getElementById('mode-month').style.background = m==='month'?'rgba(255,255,255,0.3)':'transparent';
-            document.getElementById('mode-year').style.background = m==='year'?'rgba(255,255,255,0.3)':'transparent';
-        }
-
-        function renderStats() {
-            const val = document.getElementById('report-date-input').value;
-            const filtered = state.apps.filter(a => a.status === 'done' && a.date.startsWith(val));
-            let ci = 0, yue = 0;
-            filtered.forEach(a => { const m = state.members.find(mem => mem.id == a.mid); if(m && m.type === '次卡') ci++; else yue++; });
-            document.getElementById('stat-total-lessons').innerText = filtered.length;
-            document.getElementById('stat-ci-lessons').innerText = ci;
-            document.getElementById('stat-yue-lessons').innerText = yue;
-        }
-
-        function renderKanban() {
-            const listEl = document.getElementById('agenda-list');
-            const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
-            if(dayApps.length === 0) { listEl.innerHTML = '<div style="text-align:center; padding:100px 0; color:#ccc">今日暂无课程</div>'; return; }
-            listEl.innerHTML = dayApps.map(a => {
-                const m = state.members.find(mem => mem.id == a.mid) || {name: '未知'};
-                return `<div class="item-box"><div><div class="time-text">${a.time}</div><div style="font-size:15px">${m.name}</div></div>
-                    <div>${a.status==='pending' ? `<button onclick="checkIn(${a.id})" style="background:#a7ebd9; border:none; padding:10px 20px; border-radius:10px; color:#065f46; font-weight:bold">签到</button>` : '<span style="color:#94a3b8; font-size:13px">已完成</span>'}</div></div>`;
-            }).join('');
-        }
-
-        function checkIn(id) {
-            const a = state.apps.find(i => i.id == id); const m = state.members.find(i => i.id == a.mid);
-            if(m && m.type === '次卡') { if(m.used >= m.total) return alert('次数不足'); m.used++; }
-            a.status = 'done'; saveData(); renderKanban();
         }
 
         function renderWeek() {
@@ -387,6 +405,7 @@
         function formatDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
         function saveData() { localStorage.setItem('members', JSON.stringify(state.members)); localStorage.setItem('apps', JSON.stringify(state.apps)); localStorage.setItem('logs', JSON.stringify(state.logs)); }
         function toggleRegFields(v) { document.getElementById('field-count').classList.toggle('hidden', v==1); document.getElementById('field-date').classList.toggle('hidden', v==0); }
+        function switchReportMode(m) { state.reportMode = m; renderStats(); }
         init();
     </script>
 </body>
