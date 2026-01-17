@@ -3,399 +3,489 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>本悦瑜伽馆管理系统</title>
+    <title>本悦瑜伽管理助手</title>
     <style>
-        :root {
-            --primary-color: #4a90e2;
-            --success-color: #27ae60;
-            --danger-color: #e74c3c;
-            --bg-color: #f4f7f9;
-        }
-
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            background: var(--bg-color); 
-            margin: 0; 
-            padding: 10px; 
-            color: #333;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .container { 
-            max-width: 100%; 
-            margin: auto; 
-            background: white; 
-            padding: 15px; 
-            border-radius: 12px; 
-        }
-
-        h1 { text-align: center; color: #2c3e50; font-size: 1.3rem; margin: 10px 0 20px 0; }
+        /* 样式完全移植自你的 WXSS */
+        :root { --primary: #f3a683; --bg: #f8fafc; --text: #334155; --sub-text: #64748b; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 导航菜单：2x2 网格大按钮 */
-        .nav { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-bottom: 20px; 
-        }
+        /* 顶部导航与周历 */
+        .fixed-top { background: #fff; border-bottom: 1px solid #f1f5f9; flex-shrink: 0; padding-bottom: 10px; }
+        .top-bar { height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
+        .year-month { font-size: 18px; font-weight: bold; cursor: pointer; }
+        .user-filter { font-size: 14px; color: var(--sub-text); }
+        .date-nav-bar { display: flex; align-items: center; padding: 0 10px; }
+        .week-strip { flex: 1; display: flex; justify-content: space-around; }
+        .week-day { display: flex; flex-direction: column; align-items: center; width: 40px; padding: 5px 0; color: var(--sub-text); font-size: 13px; cursor: pointer; }
+        .week-day.active { background: #ffeadb; color: #e67e22; border-radius: 8px; font-weight: bold; }
+        .nav-btn { width: 30px; text-align: center; font-size: 24px; color: var(--primary); cursor: pointer; }
 
-        .nav button { 
-            padding: 15px 5px; 
-            border: 2px solid #eee; 
-            background: #fff; 
-            border-radius: 12px; 
-            font-weight: bold; 
-            font-size: 1.05rem;
-            color: #555;
-            transition: 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        }
+        /* 内容区 */
+        .content-body { flex: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .has-top { margin-top: 0; }
 
-        .nav button.active { 
-            background: var(--primary-color); 
-            border-color: var(--primary-color);
-            color: white; 
-        }
+        /* 看板卡片 */
+        .kanban-box { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin: 10px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .box-time { font-size: 20px; font-weight: bold; color: var(--primary); }
+        .box-name { font-size: 16px; margin-top: 4px; }
+        .wechat-inline { font-size: 12px; color: var(--sub-text); font-weight: normal; }
+        .box-right-square { display: flex; gap: 8px; }
+        .sq-btn { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; border:none; }
+        .btn-check { background: #a7ebd9; color: #065f46; }
+        .btn-cancel { background: #fecaca; color: #991b1b; }
+        .box-label { color: #94a3b8; font-size: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 6px; }
 
-        .section { display: none; }
-        .section.active { display: block; }
+        /* 会员档案卡片 */
+        .m-card { background: #fff; margin: 10px; padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: pointer; }
+        .bg-orange { border-left: 5px solid #ff9f43; }
+        .bg-purple { border-left: 5px solid #a29bfe; }
+        .type-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #fff; }
+        .tag-orange { background: #ff9f43; }
+        .tag-purple { background: #a29bfe; }
+        .m-title { font-size: 16px; font-weight: bold; }
+        .m-sub { font-size: 13px; color: var(--sub-text); margin-top: 4px; }
+        .highlight { color: #e67e22; font-weight: bold; }
 
-        /* 表单样式 */
-        .form-grid { display: flex; flex-direction: column; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.95rem; }
-        input, select { 
-            width: 100%; height: 50px; padding: 0 15px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; background: #fff;
-        }
+        /* 预约排课页面 */
+        .booking-page { background: #fff; min-height: 100%; padding: 15px; }
+        .f-label { font-size: 12px; color: #94a3b8; margin: 10px 0 5px 5px; }
+        .f-input, select { width: 100%; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 12px; font-size: 14px; outline: none; }
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 0; }
+        .time-block { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 8px; font-size: 12px; cursor: pointer; }
+        .time-block.selected { background: #ffeadb; color: #e67e22; font-weight: bold; border: 1px solid #fab1a0; }
+        .time-block.disabled { opacity: 0.2; text-decoration: line-through; cursor: not-allowed; }
+
+        /* 统计报表 */
+        .stat-section { padding: 15px; }
+        .stat-banner { background: var(--primary); color: #fff; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 14px; }
+        .report-card-main { background: #fff; padding: 20px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .report-total { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+        .report-total .num { font-size: 35px; font-weight: bold; }
+        .report-total .txt { font-size: 12px; color: #94a3b8; }
+        .report-details { display: flex; gap: 10px; }
+        .det-item { flex: 1; text-align: center; padding: 10px; border-radius: 8px; }
+        .det-item.orange { background: #fff7ed; }
+        .det-item.purple { background: #faf5ff; }
+
+        /* 底部导航栏 */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #fff; display: flex; border-top: 1px solid #f1f5f9; box-shadow: 0 -2px 10px rgba(0,0,0,0.02); }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; cursor: pointer; }
+        .tab-item.on { color: var(--primary); font-weight: bold; }
         
-        .btn-main { background: var(--primary-color); color: white; border: none; height: 55px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 1.1rem; margin-top: 10px; }
-
-        /* 表格展示优化 */
-        .table-container { overflow-x: auto; border: 1px solid #eee; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 580px; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: center; font-size: 0.9rem; }
-        th { background: #f8f9fa; color: #666; }
-        
-        /* 会员信息列：姓名、微信、电话三行显示 */
-        .info-cell { text-align: left; line-height: 1.5; }
-        .m-name { font-weight: bold; color: #2c3e50; display: block; font-size: 1.05rem; }
-        .m-wechat { font-size: 0.8rem; color: #888; display: block; }
-        .m-phone { font-size: 0.8rem; color: #4a90e2; display: block; font-weight: 500; }
-
-        .history-list { font-size: 0.8rem; background: #fffcf5; padding: 8px; border-radius: 8px; max-height: 120px; overflow-y: auto; }
-        .history-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; align-items: center; }
-        .del-log { color: var(--danger-color); font-weight: bold; font-size: 1.1rem; padding: 0 8px; }
-
-        .op-btn { width: 70px; height: 36px; border: none; border-radius: 6px; font-weight: bold; margin: 3px auto; display: block; font-size: 0.85rem; }
-        .btn-edit { background: #f0f0f0; color: #333; }
-        .btn-del { background: #fff1f0; color: var(--danger-color); }
-
-        /* 看板设计 */
-        .kanban-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .slot { padding: 12px; border-radius: 12px; border: 1px solid #ddd; background: #fff; min-height: 130px; display: flex; flex-direction: column; justify-content: space-between; }
-        .slot-time { font-size: 0.85rem; color: #999; text-align: center; border-bottom: 1px solid #f5f5f5; padding-bottom: 5px; margin-bottom: 8px;}
-        .booked { background: #e3f2fd; border-color: var(--primary-color); }
-        .finished { background: #f1f8e9; border-color: var(--success-color); opacity: 0.8; }
-        .user-info { text-align: center; font-weight: bold; font-size: 1.1rem; color: #2c3e50; }
-        .btn-group { display: flex; gap: 5px; margin-top: 8px; }
-        .btn-sm { flex: 1; height: 38px; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; }
-        .btn-checkin { background: var(--success-color); color: white; }
-        .btn-cancel { background: #eee; color: #777; }
-
-        /* 备份组 */
-        .backup-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
-        .btn-backup { height: 45px; border: 1px solid #ccc; border-radius: 10px; background: #fff; color: #666; font-weight: bold; font-size: 0.9rem; }
+        /* 按钮 */
+        .btn-submit-big { background: var(--primary); color: #fff; border-radius: 25px; width: 100%; font-weight: bold; padding: 15px 0; border: none; margin-top: 10px; cursor: pointer; }
+        .m-details-box { background: #f8fafc; margin: -5px 10px 10px; padding: 10px; border-radius: 0 0 12px 12px; font-size: 13px; }
+        .record-card { background: #fff; margin-bottom: 8px; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+        .h-del { color: #f87171; cursor: pointer; font-size: 12px; }
+        .empty-tip { text-align: center; color: #94a3b8; padding: 50px 0; font-size: 14px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🧘‍♀️ 本悦瑜伽馆管理系统</h1>
-    
-    <div class="nav">
-        <button onclick="showSection('kanban')" id="btn-nav-kanban" class="active">当日看板</button>
-        <button onclick="showSection('booking')" id="btn-nav-booking">预约登记</button>
-        <button onclick="showSection('list')" id="btn-nav-list">会员汇总</button>
-        <button onclick="showSection('reg')" id="btn-nav-reg">办卡录入</button>
-    </div>
-
-    <div id="kanban" class="section active">
-        <div style="margin-bottom:15px"><input type="date" id="kanban-date-filter" onchange="renderKanban()"></div>
-        <div class="kanban-grid" id="kanban-display"></div>
-    </div>
-
-    <div id="booking" class="section">
-        <div class="form-grid">
-            <div class="form-group"><label>选择会员</label><select id="book-m-id"></select></div>
-            <div class="form-group"><label>上课日期</label><input type="date" id="book-date"></div>
-            <div class="form-group"><label>时间时段</label><select id="book-time-slot"></select></div>
-            <button class="btn-main" onclick="addAppointment()">提交预约</button>
+    <div id="header-nav" class="fixed-top">
+        <div class="top-bar">
+            <div class="year-month" id="display-date">2024年12月 ▼</div>
+            <div class="user-filter">本悦瑜伽管理</div>
+        </div>
+        <div class="date-nav-bar">
+            <div class="nav-btn" onclick="changeWeek(-1)">‹</div>
+            <div class="week-strip" id="week-list"></div>
+            <div class="nav-btn" onclick="changeWeek(1)">›</div>
         </div>
     </div>
 
-    <div id="list" class="section">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>会员信息</th>
-                        <th>状态/余量</th>
-                        <th>上课历史</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="member-tbody"></tbody>
-            </table>
+    <div class="content-body" id="main-content">
+        <div id="page-kanban">
+            <div id="agenda-list"></div>
         </div>
-    </div>
 
-    <div id="reg" class="section">
-        <h2 id="reg-title" style="font-size:1rem; text-align:center; margin-top:0;">信息登记 / 修改</h2>
-        <input type="hidden" id="edit-id">
-        <div class="form-grid">
-            <div class="form-group"><label>姓名*</label><input type="text" id="r-name"></div>
-            <div class="form-group"><label>微信*</label><input type="text" id="r-wechat"></div>
-            <div class="form-group"><label>手机号</label><input type="tel" id="r-phone"></div>
-            <div class="form-group">
-                <label>卡种</label>
-                <select id="r-type" onchange="toggleCardInputs()">
-                    <option value="次卡">次卡</option>
-                    <option value="月卡">月卡</option>
-                </select>
+        <div id="page-booking" class="hidden">
+            <div class="booking-page">
+                <div class="f-label">选择会员</div>
+                <select id="book-member-select"></select>
+                <div class="f-label">预约日期</div>
+                <input type="date" id="book-date-input" class="f-input" onchange="handleBookingDateChange(this.value)">
+                <div class="f-label">选择时间</div>
+                <div class="time-grid" id="time-grid"></div>
+                <button class="btn-submit-big" onclick="submitBooking()">确认预约并提交</button>
             </div>
-            <div class="form-group" id="r-count-group"><label>购买课时</label><input type="number" id="r-count" value="10"></div>
-            <div class="form-group" id="r-start-group" style="display:none"><label>开卡日期</label><input type="date" id="r-start-date"></div>
-            <button class="btn-main" onclick="saveMember()">确认并保存</button>
+        </div>
+
+        <div id="page-list" class="hidden">
+            <div id="member-list-container"></div>
+        </div>
+
+        <div id="page-reg" class="hidden">
+            <div class="stat-section">
+                <div class="stat-banner" id="reg-title">新会员办卡</div>
+                <div class="report-card-main">
+                    <input type="text" id="reg-name" class="f-input" placeholder="学员姓名">
+                    <input type="number" id="reg-phone" class="f-input" placeholder="手机号码">
+                    <input type="text" id="reg-wechat" class="f-input" placeholder="微信昵称">
+                    <select id="reg-type" onchange="toggleRegFields(this.value)">
+                        <option value="0">次卡</option>
+                        <option value="1">月卡</option>
+                    </select>
+                    <div id="field-count">
+                        <input type="number" id="reg-total" class="f-input" placeholder="总次数" value="20">
+                    </div>
+                    <div id="field-date" class="hidden">
+                        <div class="f-label">开卡日期</div>
+                        <input type="date" id="reg-start-date" class="f-input">
+                    </div>
+                    <button class="btn-submit-big" onclick="saveMember()">保存信息</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-center" class="hidden">
+            <div class="stat-section" style="margin-top:20px">
+                <div class="stat-banner">课程消耗报表</div>
+                <div class="report-card-main">
+                    <div class="report-total">
+                        <div class="num" id="stat-total-lessons">0</div>
+                        <div class="txt">本月总上课节数</div>
+                    </div>
+                    <div class="report-details">
+                        <div class="det-item orange">
+                            <div class="det-n" id="stat-ci-lessons">0</div>
+                            <div class="det-t">次卡消耗</div>
+                        </div>
+                        <div class="det-item purple">
+                            <div class="det-n" id="stat-yue-lessons">0</div>
+                            <div class="det-t">月卡消耗</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="backup-group">
-        <button onclick="exportData()" class="btn-backup">📥 导出备份</button>
-        <button onclick="importData()" class="btn-backup">📤 恢复数据</button>
+    <div class="tab-bar">
+        <div class="tab-item on" onclick="switchTab('kanban')"><span>今日看板</span></div>
+        <div class="tab-item" onclick="switchTab('booking')"><span>预约排课</span></div>
+        <div class="tab-item" onclick="switchTab('list')"><span>会员档案</span></div>
+        <div class="tab-item" onclick="switchTab('reg')"><span>办卡录入</span></div>
+        <div class="tab-item" onclick="switchTab('center')"><span>我的中心</span></div>
     </div>
-</div>
 
-<script>
-    let members = JSON.parse(localStorage.getItem('benyue_v11_members')) || [];
-    let appointments = JSON.parse(localStorage.getItem('benyue_v11_apps')) || [];
+    <script>
+        // --- 数据模型 ---
+        let state = {
+            activeTab: 'kanban',
+            currentDate: formatDate(new Date()),
+            baseDate: new Date(),
+            members: JSON.parse(localStorage.getItem('members')) || [],
+            apps: JSON.parse(localStorage.getItem('apps')) || [],
+            bookingDate: formatDate(new Date()),
+            selectedTimeIdx: -1,
+            editingMemberId: null
+        };
 
-    window.onload = function() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('book-date').value = today;
-        document.getElementById('kanban-date-filter').value = today;
-        document.getElementById('r-start-date').value = today;
-        initTimeSlots();
-        refreshAll();
-    };
-
-    function toggleCardInputs() {
-        const type = document.getElementById('r-type').value;
-        document.getElementById('r-count-group').style.display = type === '次卡' ? 'block' : 'none';
-        document.getElementById('r-start-group').style.display = type === '月卡' ? 'block' : 'none';
-    }
-
-    function initTimeSlots() {
-        const sel = document.getElementById('book-time-slot');
-        sel.innerHTML = "";
-        for(let i=9; i<21; i++) {
-            let tS = (i<10?'0'+i:i)+":00";
-            let tE = (i+1 < 10 ? '0'+(i+1) : i+1) + ":00";
-            sel.innerHTML += `<option value="${tS}">${tS}-${tE}</option>`;
+        const timeRanges = [];
+        for (let h = 9; h <= 20; h++) {
+            for (let m = 0; m < 60; m += 15) {
+                if (h === 20 && m > 0) break;
+                timeRanges.push({ time: `${h}:${m === 0 ? '00' : m.toString().padStart(2, '0')}`, totalMin: h * 60 + m });
+            }
         }
-    }
 
-    function showSection(id) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.getElementById('btn-nav-' + id).classList.add('active');
-        if(id === 'kanban') renderKanban();
-        if(id === 'list') renderTable();
-        if(id === 'booking') updateMemberDropdown();
-    }
+        // --- 初始化 ---
+        function init() {
+            renderWeek();
+            switchTab('kanban');
+            document.getElementById('reg-start-date').value = state.currentDate;
+            document.getElementById('book-date-input').value = state.currentDate;
+        }
 
-    function updateMemberDropdown() {
-        const sel = document.getElementById('book-m-id');
-        sel.innerHTML = members.map(m => `<option value="${m.id}">${m.name} (${m.wechat})</option>`).join('');
-    }
+        // --- 核心逻辑 ---
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            state.editingMemberId = null;
+            document.querySelectorAll('.tab-item').forEach((el, i) => {
+                const tabs = ['kanban', 'booking', 'list', 'reg', 'center'];
+                el.classList.toggle('on', tabs[i] === tabId);
+            });
 
-    function addAppointment() {
-        const mid = document.getElementById('book-m-id').value;
-        const date = document.getElementById('book-date').value;
-        const time = document.getElementById('book-time-slot').value;
-        if(!mid || !date) return alert("请选择会员和日期");
-        if(appointments.some(a => a.date === date && a.time === time)) return alert("此时段已有约");
-        if(appointments.some(a => a.mid == mid && a.date == date)) return alert("同一会员当天只能约一次");
-        appointments.push({ id: Date.now(), mid, date, time, status: 'pending' });
-        saveData();
-        showSection('kanban');
-    }
+            document.querySelectorAll('#main-content > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(`page-${tabId}`).classList.remove('hidden');
+            document.getElementById('header-nav').classList.toggle('hidden', tabId !== 'kanban');
 
-    function renderKanban() {
-        const filterDate = document.getElementById('kanban-date-filter').value;
-        const container = document.getElementById('kanban-display');
-        container.innerHTML = "";
-        for(let i=9; i<21; i++) {
-            let tS = (i<10?'0'+i:i)+":00";
-            let tE = (i+1 < 10 ? '0'+(i+1) : i+1) + ":00";
-            let app = appointments.find(a => a.date === filterDate && a.time === tS);
-            let html = `<div class="slot ${app ? (app.status==='done'?'finished':'booked'):''}">
-                <span class="slot-time">🕒 ${tS}-${tE}</span>`;
-            if(app) {
-                let m = members.find(mem => mem.id == app.mid);
-                html += `<div class="user-info">${m ? m.name : '未知'}</div>`;
-                if(app.status === 'pending') {
-                    html += `<div class="btn-group">
-                        <button class="btn-sm btn-checkin" onclick="confirmCheckIn(${app.id})">签到</button>
-                        <button class="btn-sm btn-cancel" onclick="cancelApp(${app.id})">取消</button>
+            if(tabId === 'kanban') renderKanban();
+            if(tabId === 'list') renderMemberList();
+            if(tabId === 'booking') renderBookingPage();
+            if(tabId === 'center') renderStats();
+        }
+
+        function renderWeek() {
+            const listEl = document.getElementById('week-list');
+            listEl.innerHTML = '';
+            let start = new Date(state.baseDate);
+            let day = start.getDay();
+            let diff = start.getDate() - day + (day == 0 ? -6 : 1);
+            start.setDate(diff);
+
+            for (let i = 0; i < 7; i++) {
+                let d = new Date(start);
+                d.setDate(start.getDate() + i);
+                let dateStr = formatDate(d);
+                let activeClass = dateStr === state.currentDate ? 'active' : '';
+                listEl.innerHTML += `
+                    <div class="week-day ${activeClass}" onclick="selectDate('${dateStr}')">
+                        <span class="w-name">${['一','二','三','四','五','六','日'][i]}</span>
+                        <span class="w-num">${d.getDate()}</span>
                     </div>`;
-                } else { html += `<div style="text-align:center; color:#27ae60; font-weight:bold; font-size:0.8rem;">已完成</div>`; }
-            } else { html += `<div style="text-align:center; color:#eee; font-size:0.8rem; margin-top:5px;">空闲</div>`; }
-            container.innerHTML += html + `</div>`;
+            }
+            document.getElementById('display-date').innerText = `${state.baseDate.getFullYear()}年${state.baseDate.getMonth()+1}月 ▼`;
         }
-    }
 
-    function confirmCheckIn(appId) {
-        const app = appointments.find(a => a.id === appId);
-        const m = members.find(mem => mem.id == app.mid);
-        if(m.type === '次卡' && m.total - m.used <= 0) return alert("余次不足！");
-        let fTime = prompt("下课时间：", app.time);
-        if(fTime === null) return;
-        app.status = 'done';
-        if(m.type === '次卡') m.used += 1;
-        m.logs.unshift({ id: Date.now(), date: app.date, time: `${app.time}-${fTime}` });
-        saveData();
-        renderKanban();
-    }
+        function renderKanban() {
+            const listEl = document.getElementById('agenda-list');
+            const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
+            
+            if(dayApps.length === 0) {
+                listEl.innerHTML = '<div class="empty-tip">今日暂无课程预约</div>';
+                return;
+            }
 
-    function cancelApp(appId) {
-        if(confirm("取消预约？")) {
-            appointments = appointments.filter(a => a.id !== appId);
+            listEl.innerHTML = dayApps.map(a => {
+                const m = state.members.find(mem => mem.id == a.mid) || {name: '未知'};
+                return `
+                    <div class="kanban-box">
+                        <div class="box-left">
+                            <div class="box-time">${a.time}</div>
+                            <div class="box-name">${m.name} ${m.wechat ? `<span class="wechat-inline">(${m.wechat})</span>` : ''}</div>
+                        </div>
+                        <div class="box-right-square">
+                            ${a.status === 'pending' ? `
+                                <button class="sq-btn btn-check" onclick="confirmCheckIn(${a.id})">签到</button>
+                                <button class="sq-btn btn-cancel" onclick="cancelApp(${a.id})">取消</button>
+                            ` : `<div class="box-label">已结课</div>`}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderBookingPage() {
+            const select = document.getElementById('book-member-select');
+            select.innerHTML = '<option value="-1">点击选择会员 (微信名称)</option>' + 
+                state.members.map((m, i) => `<option value="${i}">${m.name} (${m.wechat || '--'})</option>`).join('');
+            handleBookingDateChange(state.bookingDate);
+        }
+
+        function handleBookingDateChange(val) {
+            state.bookingDate = val;
+            const grid = document.getElementById('time-grid');
+            const bookedOnDay = state.apps.filter(a => a.date === val);
+            
+            grid.innerHTML = timeRanges.map((t, i) => {
+                const isBooked = bookedOnDay.some(a => {
+                    const [h, m] = a.time.split(':').map(Number);
+                    return Math.abs(t.totalMin - (h * 60 + m)) < 60;
+                });
+                return `<div class="time-block ${isBooked ? 'disabled' : ''} ${state.selectedTimeIdx === i ? 'selected' : ''}" 
+                        onclick="${isBooked ? '' : `selectTime(${i})`}">${t.time}</div>`;
+            }).join('');
+        }
+
+        function selectTime(i) {
+            state.selectedTimeIdx = i;
+            handleBookingDateChange(state.bookingDate);
+        }
+
+        function submitBooking() {
+            const mIdx = document.getElementById('book-member-select').value;
+            if(mIdx < 0 || state.selectedTimeIdx < 0) return alert('请选择会员和时间');
+            
+            const member = state.members[mIdx];
+            if(member.type === '月卡' && (state.bookingDate < member.startDate || state.bookingDate > member.expDate)) {
+                return alert('月卡不在有效期内');
+            }
+
+            state.apps.push({
+                id: Date.now(),
+                mid: member.id,
+                date: state.bookingDate,
+                time: timeRanges[state.selectedTimeIdx].time,
+                status: 'pending'
+            });
+            saveData();
+            state.currentDate = state.bookingDate;
+            state.baseDate = new Date(state.bookingDate);
+            renderWeek();
+            switchTab('kanban');
+        }
+
+        function renderMemberList() {
+            const container = document.getElementById('member-list-container');
+            container.innerHTML = `<div style="padding:15px; font-size:14px; color:#94a3b8">馆内会员：${state.members.length} 位</div>`;
+            container.innerHTML += state.members.map(m => {
+                const history = state.apps.filter(a => a.mid == m.id).sort((a,b) => b.date.localeCompare(a.date));
+                return `
+                    <div class="m-card ${m.type === '次卡' ? 'bg-orange' : 'bg-purple'}" onclick="toggleHistory(${m.id})">
+                        <div>
+                            <div class="m-title"><span class="type-tag ${m.type === '次卡' ? 'tag-orange' : 'tag-purple'}">${m.type}</span>${m.name}</div>
+                            <div class="m-sub">手机：${m.phone} | 微信：${m.wechat || '--'}</div>
+                            <div class="m-sub">${m.type === '次卡' ? `剩余次数：<span class="highlight">${m.total - m.used}</span> / ${m.total}` : `有效期：${m.startDate} 至 ${m.expDate}`}</div>
+                        </div>
+                        <div>▼</div>
+                    </div>
+                    <div id="details-${m.id}" class="m-details-box hidden">
+                        ${history.map(h => `
+                            <div class="record-card">
+                                <span>${h.date} ${h.time} [${h.status === 'done' ? '已签到' : '待签到'}]</span>
+                                <span class="h-del" onclick="deleteHistory(${h.id}, ${m.id})">删除</span>
+                            </div>
+                        `).join('')}
+                        <div style="display:flex; gap:10px; margin-top:10px">
+                            <button class="btn-submit-big" style="padding:8px; font-size:12px; background:#64748b" onclick="editMember(${m.id})">修改资料</button>
+                            <button class="btn-submit-big" style="padding:8px; font-size:12px; background:#f87171" onclick="deleteMember(${m.id})">删除会员</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function saveMember() {
+            const name = document.getElementById('reg-name').value;
+            if(!name) return alert('请输入姓名');
+            
+            const typeIdx = document.getElementById('reg-type').value;
+            const newM = {
+                id: state.editingMemberId || Date.now(),
+                name,
+                phone: document.getElementById('reg-phone').value,
+                wechat: document.getElementById('reg-wechat').value,
+                type: typeIdx == 0 ? '次卡' : '月卡',
+                total: parseInt(document.getElementById('reg-total').value) || 0,
+                used: 0,
+                startDate: document.getElementById('reg-start-date').value
+            };
+
+            if(typeIdx == 1) {
+                let d = new Date(newM.startDate);
+                d.setDate(d.getDate() + 30);
+                newM.expDate = formatDate(d);
+            }
+
+            if(state.editingMemberId) {
+                const idx = state.members.findIndex(m => m.id == state.editingMemberId);
+                newM.used = state.members[idx].used;
+                state.members[idx] = newM;
+            } else {
+                state.members.push(newM);
+            }
+
+            saveData();
+            switchTab('list');
+            // 重置表单
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-phone').value = '';
+            document.getElementById('reg-wechat').value = '';
+        }
+
+        function confirmCheckIn(id) {
+            const app = state.apps.find(a => a.id == id);
+            const m = state.members.find(mem => mem.id == app.mid);
+            if(m && m.type === '次卡') {
+                if(m.used >= m.total) return alert('次数不足');
+                m.used++;
+            }
+            app.status = 'done';
             saveData();
             renderKanban();
         }
-    }
 
-    function renderTable() {
-        const tbody = document.getElementById('member-tbody');
-        tbody.innerHTML = "";
-        members.forEach(m => {
-            let logHtml = m.logs.map(l => `<div class="history-item"><span>${l.date}</span><span class="del-log" onclick="deleteLog(${m.id}, ${l.id})">×</span></div>`).join('');
-            let status = m.type === '次卡' ? `余${m.total-m.used}次` : `到期:${m.expiry}`;
-            
-            // 核心修改：三行展示会员基础信息
-            tbody.innerHTML += `<tr>
-                <td class="info-cell">
-                    <span class="m-name">${m.name}</span>
-                    <span class="m-wechat">微信: ${m.wechat}</span>
-                    <span class="m-phone">电话: ${m.phone || '未填写'}</span>
-                </td>
-                <td style="color:red; font-weight:bold">${status}</td>
-                <td><div class="history-list">${logHtml || '-'}</div></td>
-                <td>
-                    <button class="op-btn btn-edit" onclick="editMember(${m.id})">修改</button>
-                    <button class="op-btn btn-del" onclick="deleteMember(${m.id})">注销</button>
-                </td>
-            </tr>`;
-        });
-    }
-
-    function saveMember() {
-        const id = document.getElementById('edit-id').value;
-        const name = document.getElementById('r-name').value;
-        const wechat = document.getElementById('r-wechat').value;
-        const phone = document.getElementById('r-phone').value;
-        const type = document.getElementById('r-type').value;
-        const count = parseInt(document.getElementById('r-count').value);
-        const sDate = document.getElementById('r-start-date').value;
-        if(!name || !wechat) return alert("姓名和微信为必填项");
-        let expiry = "";
-        if(type === '月卡') {
-            let d = new Date(sDate); d.setDate(d.getDate() + 31);
-            expiry = d.toISOString().split('T')[0];
-        }
-        if(id) {
-            let m = members.find(mem => mem.id == id);
-            Object.assign(m, { name, wechat, phone, type, total: count, startDate: sDate, expiry: expiry });
-        } else {
-            members.push({ id: Date.now(), name, wechat, phone, type, total: count, used: 0, logs: [], startDate: sDate, expiry: expiry });
-        }
-        saveData();
-        resetForm();
-        showSection('list');
-    }
-
-    function deleteLog(mId, logId) {
-        if(confirm("确定删除并退还课时？")) {
-            const m = members.find(mem => mem.id == mId);
-            m.logs = m.logs.filter(l => l.id != logId);
-            if(m.type === '次卡') m.used = Math.max(0, m.used - 1);
-            saveData(); renderTable();
-        }
-    }
-
-    function editMember(id) {
-        const m = members.find(mem => mem.id == id);
-        document.getElementById('edit-id').value = m.id;
-        document.getElementById('r-name').value = m.name;
-        document.getElementById('r-wechat').value = m.wechat;
-        document.getElementById('r-phone').value = m.phone;
-        document.getElementById('r-type').value = m.type;
-        document.getElementById('r-count').value = m.total;
-        document.getElementById('r-start-date').value = m.startDate || new Date().toISOString().split('T')[0];
-        toggleCardInputs();
-        showSection('reg');
-    }
-
-    function deleteMember(id) {
-        if(confirm("确定彻底注销该会员？")) {
-            members = members.filter(m => m.id != id);
-            appointments = appointments.filter(a => a.mid != id);
-            saveData(); renderTable();
-        }
-    }
-
-    function saveData() {
-        localStorage.setItem('benyue_v11_members', JSON.stringify(members));
-        localStorage.setItem('benyue_v11_apps', JSON.stringify(appointments));
-    }
-
-    function refreshAll() { updateMemberDropdown(); renderTable(); renderKanban(); }
-    function resetForm() {
-        document.getElementById('edit-id').value = "";
-        document.getElementById('r-name').value = "";
-        document.getElementById('r-wechat').value = "";
-        document.getElementById('r-phone').value = "";
-        document.getElementById('reg-title').innerText = "信息登记 / 修改";
-    }
-
-    function exportData() {
-        const data = { members, appointments };
-        const now = new Date();
-        const timeStr = `${now.getMonth()+1}月${now.getDate()}日${now.getHours()}时`;
-        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `本悦备份_${timeStr}.json`;
-        a.click();
-    }
-
-    function importData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = event => {
-                const data = JSON.parse(event.target.result);
-                members = data.members;
-                appointments = data.appointments;
+        function cancelApp(id) {
+            if(confirm('确定取消预约吗？')) {
+                state.apps = state.apps.filter(a => a.id != id);
                 saveData();
-                location.reload();
-            };
-            reader.readAsText(file);
-        };
-        input.click();
-    }
-</script>
+                renderKanban();
+            }
+        }
+
+        function deleteMember(id) {
+            if(confirm('确定删除该会员及所有记录吗？')) {
+                state.members = state.members.filter(m => m.id != id);
+                state.apps = state.apps.filter(a => a.mid != id);
+                saveData();
+                renderMemberList();
+            }
+        }
+
+        function deleteHistory(hid, mid) {
+            const app = state.apps.find(a => a.id == hid);
+            if(app.status === 'done') {
+                const m = state.members.find(mem => mem.id == mid);
+                if(m && m.type === '次卡') m.used = Math.max(0, m.used - 1);
+            }
+            state.apps = state.apps.filter(a => a.id != hid);
+            saveData();
+            renderMemberList();
+        }
+
+        function editMember(id) {
+            const m = state.members.find(mem => mem.id == id);
+            state.editingMemberId = id;
+            switchTab('reg');
+            document.getElementById('reg-title').innerText = '修改资料';
+            document.getElementById('reg-name').value = m.name;
+            document.getElementById('reg-phone').value = m.phone;
+            document.getElementById('reg-wechat').value = m.wechat;
+            document.getElementById('reg-type').value = m.type === '次卡' ? 0 : 1;
+            document.getElementById('reg-total').value = m.total;
+            document.getElementById('reg-start-date').value = m.startDate || state.currentDate;
+            toggleRegFields(m.type === '次卡' ? 0 : 1);
+        }
+
+        function renderStats() {
+            const nowMonth = state.currentDate.substring(0, 7);
+            const monthlyApps = state.apps.filter(a => a.status === 'done' && a.date.startsWith(nowMonth));
+            
+            let ciCount = 0, yueCount = 0;
+            monthlyApps.forEach(a => {
+                const m = state.members.find(mem => mem.id == a.mid);
+                if(m && m.type === '次卡') ciCount++; else yueCount++;
+            });
+
+            document.getElementById('stat-total-lessons').innerText = monthlyApps.length;
+            document.getElementById('stat-ci-lessons').innerText = ciCount;
+            document.getElementById('stat-yue-lessons').innerText = yueCount;
+        }
+
+        // --- 工具函数 ---
+        function formatDate(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        function selectDate(date) {
+            state.currentDate = date;
+            renderWeek();
+            renderKanban();
+        }
+
+        function changeWeek(dir) {
+            state.baseDate.setDate(state.baseDate.getDate() + (dir * 7));
+            renderWeek();
+        }
+
+        function toggleHistory(id) {
+            const el = document.getElementById(`details-${id}`);
+            el.classList.toggle('hidden');
+        }
+
+        function toggleRegFields(val) {
+            document.getElementById('field-count').classList.toggle('hidden', val == 1);
+            document.getElementById('field-date').classList.toggle('hidden', val == 0);
+        }
+
+        function saveData() {
+            localStorage.setItem('members', JSON.stringify(state.members));
+            localStorage.setItem('apps', JSON.stringify(state.apps));
+        }
+
+        init();
+    </script>
 </body>
 </html>
