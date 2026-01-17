@@ -65,6 +65,10 @@
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #fff; display: flex; border-top: 1px solid #f1f5f9; padding-bottom: 15px; }
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
         .tab-item.active { color: var(--primary); font-weight: bold; }
+        
+        /* 备份导入专用样式 */
+        .sync-section { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #eee; display: flex; gap: 10px; }
+        .btn-sync { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--primary); background: #fff; color: var(--primary); font-size: 13px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -144,6 +148,12 @@
                             <div style="font-size:11px">月卡消耗</div>
                         </div>
                     </div>
+                    
+                    <div class="sync-section">
+                        <button class="btn-sync" onclick="exportData()">备份数据(导出)</button>
+                        <button class="btn-sync" onclick="importData()">导入数据(同步)</button>
+                    </div>
+                    <p style="font-size:11px; color:#94a3b8; text-align:center; margin-top:10px;">* 更换手机时，请先备份并复制发给新手机</p>
                 </div>
             </div>
         </div>
@@ -186,6 +196,46 @@
             switchReportMode('month');
         }
 
+        // 新增备份导出逻辑
+        function exportData() {
+            const data = {
+                members: state.members,
+                apps: state.apps,
+                logs: state.logs
+            };
+            const dataStr = JSON.stringify(data);
+            const input = document.createElement('textarea');
+            input.value = dataStr;
+            document.body.appendChild(input);
+            input.select();
+            try {
+                document.execCommand('copy');
+                alert("备份成功！数据已复制到剪贴板，请发送到微信。");
+            } catch(e) {
+                alert("复制失败，请手动选择并复制：\n" + dataStr);
+            }
+            document.body.removeChild(input);
+        }
+
+        // 新增导入恢复逻辑
+        function importData() {
+            const dataStr = prompt("请粘贴另一台手机发来的备份代码：");
+            if(!dataStr) return;
+            try {
+                const data = JSON.parse(dataStr);
+                if(confirm("导入将覆盖此手机现有数据且不可恢复，确定吗？")) {
+                    state.members = data.members || [];
+                    state.apps = data.apps || [];
+                    state.logs = data.logs || [];
+                    saveData();
+                    alert("数据导入成功！页面将自动刷新。");
+                    location.reload();
+                }
+            } catch(e) {
+                alert("代码无效，请确保复制了完整的备份代码。");
+            }
+        }
+
         function switchTab(tabId) {
             state.activeTab = tabId;
             document.querySelectorAll('.tab-item').forEach((el, i) => {
@@ -201,7 +251,6 @@
             if(tabId === 'kanban') renderKanban();
         }
 
-        // --- 报表中心：按月、按年、所有 ---
         function switchReportMode(m) {
             state.reportMode = m;
             document.getElementById('mode-month').classList.toggle('on', m === 'month');
@@ -246,7 +295,6 @@
             document.getElementById('stat-yue-lessons').innerText = yueCount;
         }
 
-        // --- 会员档案逻辑 ---
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             container.innerHTML = `<div style="padding:15px; font-size:12px; color:#94a3b8">共 ${state.members.length} 位会员</div>`;
@@ -306,7 +354,6 @@
             saveData(); renderMemberList();
         }
 
-        // --- 看板逻辑 ---
         function renderKanban() {
             const listEl = document.getElementById('agenda-list');
             const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
@@ -343,7 +390,6 @@
             saveData(); renderKanban();
         }
 
-        // --- 排课逻辑 ---
         function renderBookingPage() {
             const select = document.getElementById('book-member-select');
             select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name} (${m.wxname||''})</option>`).join('');
@@ -380,7 +426,6 @@
             state.selectedTimeIdx = -1;
         }
 
-        // --- 资料管理 ---
         function saveMember() {
             const name = document.getElementById('reg-name').value;
             if(!name) return alert('真实姓名不能为空');
@@ -434,7 +479,6 @@
             saveData(); renderMemberList();
         }
 
-        // --- 基础工具 ---
         function toggleDetails(id) { document.getElementById(`details-${id}`).classList.toggle('hidden'); }
         function selectDate(d) { state.currentDate = d; renderWeek(); renderKanban(); }
         function changeWeek(dir) { state.baseDate.setDate(state.baseDate.getDate() + (dir*7)); renderWeek(); }
