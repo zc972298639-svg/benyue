@@ -22,7 +22,7 @@
         .content-body { flex: 1; overflow-y: auto; padding-bottom: 90px; }
         .hidden { display: none; }
 
-        /* 卡片设计 */
+        /* 卡片 */
         .card { background: #fff; margin: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; }
         .card-header { background: var(--primary); color: #fff; padding: 12px 15px; font-weight: bold; font-size: 14px; }
         .card-body { padding: 15px; }
@@ -35,15 +35,6 @@
         .m-card.yue { border-left-color: #a29bfe; }
         .type-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-right: 6px; color: #fff; vertical-align: middle; }
 
-        /* 报表样式 */
-        .report-total { text-align: center; padding: 20px 0; border-bottom: 1px solid #f1f5f9; margin-bottom: 15px; }
-        .report-total .num { font-size: 40px; font-weight: bold; }
-        .report-grid { display: flex; gap: 10px; }
-        .stat-item { flex: 1; text-align: center; padding: 12px; border-radius: 10px; }
-        .mode-toggle { background:rgba(255,255,255,0.2); border-radius:6px; padding:2px; display: flex; }
-        .mode-btn { font-size:11px; padding:4px 8px; cursor:pointer; border-radius: 4px; transition: 0.3s; }
-        .mode-btn.on { background: rgba(255,255,255,0.4); font-weight: bold; }
-
         .f-input, select { width: 100%; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 12px; outline: none; }
         .btn-main { background: var(--primary); color: #fff; border-radius: 25px; width: 100%; font-weight: bold; padding: 14px 0; border: none; }
         .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -53,10 +44,18 @@
         .btn-cancel { background:#fee2e2; border:none; padding:8px 15px; border-radius:8px; color:#ef4444; font-weight:bold; }
 
         .record-line { background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-        .tag-log { background: #3b82f6; color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; }
-        .tag-app { background: #10b981; color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; }
+        .tag-log { background: #3b82f6; color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; margin-right:5px; }
+        .tag-app { background: #10b981; color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; margin-right:5px; }
 
-        /* 时间选择器 */
+        /* 报表模式切换器扩展 */
+        .mode-toggle { background:rgba(255,255,255,0.2); border-radius:6px; padding:2px; display: flex; gap: 2px; }
+        .mode-btn { font-size:11px; padding:4px 10px; cursor:pointer; border-radius: 4px; color: #fff; opacity: 0.8; }
+        .mode-btn.on { background: rgba(255,255,255,0.4); font-weight: bold; opacity: 1; }
+
+        /* 报表数据格 */
+        .report-grid { display: flex; gap: 10px; margin-top: 15px; }
+        .stat-item { flex: 1; text-align: center; padding: 12px; border-radius: 10px; }
+
         .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .time-block { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
         .time-block.on { background: #ffeadb; color: #e67e22; border-color: #fab1a0; font-weight: bold; }
@@ -69,6 +68,8 @@
     </style>
 </head>
 <body>
+
+    <input type="date" id="hidden-date-picker" style="position:absolute; visibility:hidden;" onchange="processRenewDate(this.value)">
 
     <div id="header-nav" class="fixed-top">
         <div class="top-bar">
@@ -89,13 +90,10 @@
             <div class="card">
                 <div class="card-header">预约排课</div>
                 <div class="card-body">
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:5px">第一步：选择会员</div>
                     <select id="book-member-select" onchange="handleBookingDateChange(state.bookingDate)"></select>
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:5px">第二步：预约日期</div>
                     <input type="date" id="book-date-input" class="f-input" onchange="handleBookingDateChange(this.value)">
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:10px">第三步：时间 (一小时一课)</div>
                     <div class="time-grid" id="time-grid"></div>
-                    <button class="btn-main" style="margin-top:15px" onclick="submitBooking()">提交预约</button>
+                    <button class="btn-main" style="margin-top:15px" onclick="submitBooking()">确认预约</button>
                 </div>
             </div>
         </div>
@@ -115,7 +113,7 @@
                     </select>
                     <div id="field-count"><input type="number" id="reg-total" class="f-input" placeholder="总次数" value="20"></div>
                     <div id="field-date" class="hidden"><input type="date" id="reg-start-date" class="f-input"></div>
-                    <button class="btn-main" onclick="saveMember()">保存</button>
+                    <button class="btn-main" onclick="saveMember()">保存会员资料</button>
                 </div>
             </div>
         </div>
@@ -123,17 +121,18 @@
         <div id="page-center" class="hidden">
             <div class="card">
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>消耗统计</span>
+                    <span>课程消耗报表</span>
                     <div class="mode-toggle">
                         <div id="mode-month" class="mode-btn on" onclick="switchReportMode('month')">按月</div>
                         <div id="mode-year" class="mode-btn" onclick="switchReportMode('year')">按年</div>
+                        <div id="mode-all" class="mode-btn" onclick="switchReportMode('all')">所有</div>
                     </div>
                 </div>
                 <div class="card-body">
                     <input id="report-date-input" class="f-input" onchange="renderStats()">
-                    <div class="report-total">
-                        <div class="num" id="stat-total-lessons">0</div>
-                        <div style="font-size:12px; color:#94a3b8">总消耗节数</div>
+                    <div class="report-total" style="text-align:center; padding: 20px 0; border-bottom: 1px solid #f1f5f9;">
+                        <div class="num" id="stat-total-lessons" style="font-size:45px; font-weight:bold; color:var(--primary)">0</div>
+                        <div style="font-size:12px; color:#94a3b8" id="stat-title-label">总消耗节数</div>
                     </div>
                     <div class="report-grid">
                         <div class="stat-item" style="background:#fff7ed; color:#c2410c;">
@@ -166,9 +165,11 @@
             baseDate: new Date(),
             members: JSON.parse(localStorage.getItem('members')) || [],
             apps: JSON.parse(localStorage.getItem('apps')) || [],
+            logs: JSON.parse(localStorage.getItem('logs')) || [],
             bookingDate: formatDate(new Date()),
             selectedTimeIdx: -1,
-            reportMode: 'month'
+            reportMode: 'month',
+            renewingMemberId: null
         };
 
         const timeRanges = [];
@@ -182,7 +183,7 @@
         function init() {
             renderWeek();
             switchTab('kanban');
-            switchReportMode('month'); // 初始化报表模式
+            switchReportMode('month');
         }
 
         function switchTab(tabId) {
@@ -200,12 +201,116 @@
             if(tabId === 'kanban') renderKanban();
         }
 
-        // --- 看板功能：签到 + 取消 ---
+        // --- 报表中心：按月、按年、所有 ---
+        function switchReportMode(m) {
+            state.reportMode = m;
+            document.getElementById('mode-month').classList.toggle('on', m === 'month');
+            document.getElementById('mode-year').classList.toggle('on', m === 'year');
+            document.getElementById('mode-all').classList.toggle('on', m === 'all');
+            
+            const input = document.getElementById('report-date-input');
+            const label = document.getElementById('stat-title-label');
+
+            if (m === 'all') {
+                input.classList.add('hidden');
+                label.innerText = "累计总消耗节数";
+            } else {
+                input.classList.remove('hidden');
+                input.type = (m === 'month' ? 'month' : 'number');
+                input.value = (m === 'month' ? state.currentDate.substring(0, 7) : new Date().getFullYear());
+                label.innerText = m === 'month' ? "本月消耗节数" : "本年消耗节数";
+            }
+            renderStats();
+        }
+
+        function renderStats() {
+            let filtered = [];
+            if (state.reportMode === 'all') {
+                filtered = state.apps.filter(a => a.status === 'done');
+            } else {
+                const val = document.getElementById('report-date-input').value.toString();
+                if (!val) return;
+                filtered = state.apps.filter(a => a.status === 'done' && a.date.startsWith(val));
+            }
+
+            let ciCount = 0;
+            let yueCount = 0;
+            filtered.forEach(a => {
+                const m = state.members.find(mem => mem.id == a.mid);
+                if (m && m.type === '次卡') ciCount++;
+                else yueCount++;
+            });
+
+            document.getElementById('stat-total-lessons').innerText = filtered.length;
+            document.getElementById('stat-ci-lessons').innerText = ciCount;
+            document.getElementById('stat-yue-lessons').innerText = yueCount;
+        }
+
+        // --- 会员档案逻辑 ---
+        function renderMemberList() {
+            const container = document.getElementById('member-list-container');
+            container.innerHTML = `<div style="padding:15px; font-size:12px; color:#94a3b8">共 ${state.members.length} 位会员</div>`;
+            container.innerHTML += state.members.map(m => {
+                const myRecords = [
+                    ...state.apps.filter(a => a.mid == m.id).map(a => ({...a, tp:'app'})),
+                    ...state.logs.filter(l => l.mid == m.id).map(l => ({...l, tp:'log'}))
+                ].sort((a,b) => (b.date || b.opTime || "").localeCompare(a.date || a.opTime || ""));
+
+                const recordHtml = myRecords.map(r => `
+                    <div class="record-line">
+                        <span><b class="${r.tp=='app'?'tag-app':'tag-log'}">${r.tp=='app'?'课':'续'}</b> ${r.tp=='app'?(r.date+' '+r.time+' '+(r.status=='done'?'已签到':'预约中')):(r.opTime+' '+r.desc)}</span>
+                        <span style="color:#ff7675" onclick="deleteHistory(event, '${r.tp}', ${r.id}, ${m.id})">删除</span>
+                    </div>`).join('');
+
+                const subInfo = m.type == '次卡' ? `总 ${m.total} 次 / 剩 ${m.total - m.used} 次` : `有效期至 ${m.expDate}`;
+
+                return `
+                <div class="item-box m-card ${m.type=='次卡'?'ci':'yue'}" onclick="toggleDetails(${m.id})">
+                    <div>
+                        <div style="font-weight:bold"><span class="type-tag" style="background:${m.type=='次卡'?'#ff9f43':'#a29bfe'}">${m.type}</span>${m.name} (${m.wxname||'无昵称'})</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:5px">${subInfo}</div>
+                    </div>
+                </div>
+                <div id="details-${m.id}" class="hidden" style="margin:-10px 12px 12px; background:#fff; padding:15px; border-radius:0 0 12px 12px; border:1px solid #eee; border-top:none;">
+                    <div class="btn-group">
+                        <button class="btn-sub" style="background:var(--primary); color:#fff; border:none;" onclick="renewCard(${m.id},'${m.type}')">续卡</button>
+                        <button class="btn-sub" onclick="editMember(${m.id})">修改</button>
+                        <button class="btn-sub" style="color:red" onclick="deleteMember(${m.id})">删除</button>
+                    </div>
+                    <div style="font-size:12px; font-weight:bold; margin:10px 0 8px;">往来记录：</div>
+                    ${recordHtml || '<div style="color:#ccc; font-size:12px; text-align:center">暂无记录</div>'}
+                </div>`;
+            }).join('');
+        }
+
+        function renewCard(id, type) {
+            state.renewingMemberId = id;
+            if(type === '次卡') {
+                const add = prompt("续费次数：", "20");
+                if(add && !isNaN(add)) {
+                    const m = state.members.find(mem => mem.id == id);
+                    m.total = parseInt(m.total) + parseInt(add);
+                    state.logs.push({ id: Date.now(), mid: id, opTime: formatDate(new Date()), desc: `续费次卡 +${add}次` });
+                    saveData(); renderMemberList();
+                }
+            } else { document.getElementById('hidden-date-picker').showPicker(); }
+        }
+
+        function processRenewDate(val) {
+            if(!val || !state.renewingMemberId) return;
+            const m = state.members.find(mem => mem.id == state.renewingMemberId);
+            m.startDate = val; 
+            let d = new Date(val); d.setDate(d.getDate() + 30);
+            m.expDate = formatDate(d);
+            state.logs.push({ id: Date.now(), mid: m.id, opTime: formatDate(new Date()), desc: `续费月卡至 ${m.expDate}` });
+            saveData(); renderMemberList();
+        }
+
+        // --- 看板逻辑 ---
         function renderKanban() {
             const listEl = document.getElementById('agenda-list');
             const dayApps = state.apps.filter(a => a.date === state.currentDate).sort((a,b) => a.time.localeCompare(b.time));
-            if(dayApps.length === 0) { listEl.innerHTML = '<div style="text-align:center; padding:100px 0; color:#ccc">今日暂无预约</div>'; return; }
-            
+            if(dayApps.length === 0) { listEl.innerHTML = '<div style="text-align:center; padding:100px 0; color:#ccc">今日无预约课程</div>'; return; }
             listEl.innerHTML = dayApps.map(a => {
                 const m = state.members.find(mem => mem.id == a.mid) || {name: '未知'};
                 return `
@@ -215,7 +320,7 @@
                         ${a.status==='pending' ? `
                             <button class="btn-check" onclick="checkIn(${a.id})">签到</button>
                             <button class="btn-cancel" onclick="cancelApp(${a.id})">取消</button>
-                        ` : '<span style="color:#94a3b8; font-size:13px">已完成签到</span>'}
+                        ` : '<span style="color:#94a3b8; font-size:13px">已签到</span>'}
                     </div>
                 </div>`;
             }).join('');
@@ -225,7 +330,7 @@
             const a = state.apps.find(i => i.id == id);
             const m = state.members.find(i => i.id == a.mid);
             if(m && m.type === '次卡') {
-                if(m.used >= m.total) return alert('次数不足！请先续费。');
+                if(m.used >= m.total) return alert('剩余次数不足，请先续费！');
                 m.used++;
             }
             a.status = 'done';
@@ -233,51 +338,15 @@
         }
 
         function cancelApp(id) {
-            if(!confirm("确定要取消并删除这个预约吗？")) return;
+            if(!confirm("确定取消并删除此预约？")) return;
             state.apps = state.apps.filter(a => a.id !== id);
             saveData(); renderKanban();
         }
 
-        // --- 报表中心：修复选择功能 ---
-        function switchReportMode(m) {
-            state.reportMode = m;
-            const monthBtn = document.getElementById('mode-month');
-            const yearBtn = document.getElementById('mode-year');
-            const input = document.getElementById('report-date-input');
-
-            if(m === 'month') {
-                monthBtn.classList.add('on');
-                yearBtn.classList.remove('on');
-                input.type = 'month';
-                input.value = state.currentDate.substring(0, 7);
-            } else {
-                yearBtn.classList.add('on');
-                monthBtn.classList.remove('on');
-                input.type = 'number';
-                input.value = new Date().getFullYear();
-            }
-            renderStats();
-        }
-
-        function renderStats() {
-            const val = document.getElementById('report-date-input').value.toString();
-            if(!val) return;
-            // 过滤逻辑：按月份开头或按年份开头
-            const filtered = state.apps.filter(a => a.status === 'done' && a.date.startsWith(val));
-            let ci = 0, yue = 0;
-            filtered.forEach(a => {
-                const m = state.members.find(mem => mem.id == a.mid);
-                if(m && m.type === '次卡') ci++; else yue++;
-            });
-            document.getElementById('stat-total-lessons').innerText = filtered.length;
-            document.getElementById('stat-ci-lessons').innerText = ci;
-            document.getElementById('stat-yue-lessons').innerText = yue;
-        }
-
-        // --- 预约排课逻辑 ---
+        // --- 排课逻辑 ---
         function renderBookingPage() {
             const select = document.getElementById('book-member-select');
-            select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name} (${m.wxname || ''})</option>`).join('');
+            select.innerHTML = state.members.map((m, i) => `<option value="${i}">${m.name} (${m.wxname||''})</option>`).join('');
             document.getElementById('book-date-input').value = state.bookingDate;
             handleBookingDateChange(state.bookingDate);
         }
@@ -304,59 +373,33 @@
 
         function submitBooking() {
             const mIdx = document.getElementById('book-member-select').value;
-            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间点');
-            const member = state.members[mIdx];
+            if(mIdx === "" || state.selectedTimeIdx < 0) return alert('请选择会员和时间');
             const targetTime = timeRanges[state.selectedTimeIdx];
-            state.apps.push({ id: Date.now(), mid: member.id, date: state.bookingDate, time: targetTime.time, status: 'pending' });
+            state.apps.push({ id: Date.now(), mid: state.members[mIdx].id, date: state.bookingDate, time: targetTime.time, status: 'pending' });
             saveData(); switchTab('kanban');
             state.selectedTimeIdx = -1;
         }
 
-        // --- 会员管理 ---
-        function renderMemberList() {
-            const container = document.getElementById('member-list-container');
-            container.innerHTML = `<div style="padding:15px; font-size:12px; color:#94a3b8">共 ${state.members.length} 位学员</div>`;
-            container.innerHTML += state.members.map(m => {
-                const subInfo = m.type == '次卡' ? `总 ${m.total} 次 / 剩 ${m.total - m.used} 次` : `有效期至 ${m.expDate}`;
-                return `
-                <div class="item-box m-card ${m.type=='次卡'?'ci':'yue'}" onclick="toggleDetails(${m.id})">
-                    <div>
-                        <div style="font-weight:bold"><span class="type-tag" style="background:${m.type=='次卡'?'#ff9f43':'#a29bfe'}">${m.type}</span>${m.name} (${m.wxname||''})</div>
-                        <div style="font-size:12px; color:#64748b; margin-top:5px">${subInfo}</div>
-                    </div>
-                </div>
-                <div id="details-${m.id}" class="hidden" style="margin:-10px 10px 10px; background:#fff; padding:15px; border-radius:12px; border:1px solid #eee">
-                    <div class="btn-group" style="padding:10px">
-                        <button class="btn-sub" onclick="editMember(${m.id})">修改资料</button>
-                        <button class="btn-sub" style="color:red" onclick="deleteMember(${m.id})">删除</button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
+        // --- 资料管理 ---
         function saveMember() {
             const name = document.getElementById('reg-name').value;
-            const typeIdx = document.getElementById('reg-type').value;
-            if(!name) return alert('姓名必填');
+            if(!name) return alert('真实姓名不能为空');
             const mData = { 
-                name, 
-                wxname: document.getElementById('reg-wxname').value,
+                name, wxname: document.getElementById('reg-wxname').value, 
                 phone: document.getElementById('reg-phone').value, 
-                type: typeIdx==0?'次卡':'月卡', 
-                total: parseInt(document.getElementById('reg-total').value)||0, 
-                startDate: document.getElementById('reg-start-date').value 
+                type: document.getElementById('reg-type').value == 0 ? '次卡' : '月卡',
+                total: parseInt(document.getElementById('reg-total').value)||0,
+                startDate: document.getElementById('reg-start-date').value
             };
-            if(mData.type === '月卡') { 
-                let d = new Date(mData.startDate || new Date()); 
-                d.setDate(d.getDate()+30); 
-                mData.expDate = formatDate(d); 
+            if(mData.type === '月卡') {
+                let d = new Date(mData.startDate || new Date()); d.setDate(d.getDate()+30); mData.expDate = formatDate(d);
             }
             if(state.editingMemberId) {
                 const idx = state.members.findIndex(m => m.id == state.editingMemberId);
-                state.members[idx] = { ...state.members[idx], ...mData }; 
+                state.members[idx] = {...state.members[idx], ...mData};
                 state.editingMemberId = null;
-            } else { 
-                state.members.push({ id: Date.now(), used: 0, ...mData }); 
+            } else {
+                state.members.push({ id: Date.now(), used: 0, ...mData });
             }
             saveData(); switchTab('list');
         }
@@ -365,21 +408,46 @@
             const m = state.members.find(mem => mem.id == id);
             state.editingMemberId = id; switchTab('reg');
             document.getElementById('reg-name').value = m.name;
-            document.getElementById('reg-wxname').value = m.wxname || "";
-            document.getElementById('reg-phone').value = m.phone;
+            document.getElementById('reg-wxname').value = m.wxname;
             document.getElementById('reg-type').value = (m.type === '次卡' ? 0 : 1);
-            document.getElementById('reg-total').value = m.total;
             toggleRegFields(m.type === '次卡' ? 0 : 1);
         }
 
-        function deleteMember(id) {
-            if(prompt("确认删除？请输入管理密码：") !== AUTH_PWD) return;
-            state.members = state.members.filter(m => m.id != id);
-            state.apps = state.apps.filter(a => a.mid != id);
+        function deleteHistory(e, tp, rid, mid) {
+            e.stopPropagation(); if(prompt("危险操作：请输入管理密码：") !== AUTH_PWD) return;
+            if(tp === 'app') {
+                const a = state.apps.find(i=>i.id==rid);
+                if(a.status==='done') { 
+                    const m=state.members.find(i=>i.id==mid); 
+                    if(m&&m.type==='次卡') m.used = Math.max(0, m.used - 1); 
+                }
+                state.apps = state.apps.filter(i=>i.id!=rid);
+            } else { state.logs = state.logs.filter(i=>i.id!=rid); }
             saveData(); renderMemberList();
         }
 
-        // --- 辅助工具 ---
+        function deleteMember(id) {
+            if(prompt("确认彻底删除该会员？请输入管理密码：") !== AUTH_PWD) return;
+            state.members = state.members.filter(m => m.id != id);
+            state.apps = state.apps.filter(a => a.mid != id);
+            state.logs = state.logs.filter(l => l.mid != id);
+            saveData(); renderMemberList();
+        }
+
+        // --- 基础工具 ---
+        function toggleDetails(id) { document.getElementById(`details-${id}`).classList.toggle('hidden'); }
+        function selectDate(d) { state.currentDate = d; renderWeek(); renderKanban(); }
+        function changeWeek(dir) { state.baseDate.setDate(state.baseDate.getDate() + (dir*7)); renderWeek(); }
+        function formatDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function saveData() { 
+            localStorage.setItem('members', JSON.stringify(state.members)); 
+            localStorage.setItem('apps', JSON.stringify(state.apps)); 
+            localStorage.setItem('logs', JSON.stringify(state.logs)); 
+        }
+        function toggleRegFields(v) { 
+            document.getElementById('field-count').classList.toggle('hidden', v==1); 
+            document.getElementById('field-date').classList.toggle('hidden', v==0); 
+        }
         function renderWeek() {
             const listEl = document.getElementById('week-list'); listEl.innerHTML = '';
             let start = new Date(state.baseDate); let day = start.getDay(); let diff = start.getDate() - day + (day == 0 ? -6 : 1);
@@ -390,12 +458,6 @@
             }
             document.getElementById('display-date').innerText = state.baseDate.getFullYear() + "年" + (state.baseDate.getMonth()+1) + "月";
         }
-        function toggleDetails(id) { document.getElementById(`details-${id}`).classList.toggle('hidden'); }
-        function selectDate(d) { state.currentDate = d; renderWeek(); renderKanban(); }
-        function changeWeek(dir) { state.baseDate.setDate(state.baseDate.getDate() + (dir*7)); renderWeek(); }
-        function formatDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-        function saveData() { localStorage.setItem('members', JSON.stringify(state.members)); localStorage.setItem('apps', JSON.stringify(state.apps)); }
-        function toggleRegFields(v) { document.getElementById('field-count').classList.toggle('hidden', v==1); document.getElementById('field-date').classList.toggle('hidden', v==0); }
         
         init();
     </script>
